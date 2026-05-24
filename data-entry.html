@@ -83,6 +83,8 @@ body{font-family:var(--font);background:#F5F4FC;color:var(--g900);min-height:100
 .bulk-sel{padding:7px 10px;border-radius:7px;border:1.5px solid var(--purple);background:#fff;font-family:var(--font);font-size:13px;color:var(--g800);outline:none;cursor:pointer}
 .bulk-save{padding:7px 16px;border-radius:7px;border:none;background:var(--purple);color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer}
 .bulk-save:hover{background:var(--purple-dark)}
+.bulk-archive{padding:7px 14px;border-radius:7px;border:1.5px solid #FCA5A5;background:var(--red-bg);color:#B91C1C;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
+.bulk-archive:hover{background:#FCA5A5;border-color:var(--red)}
 .bulk-clear{padding:7px 12px;border-radius:7px;border:1.5px solid var(--purple);background:transparent;color:var(--purple-dark);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer}
 
 /* CARDS GRID */
@@ -459,15 +461,27 @@ function tab1Contacts() {
 
 let t1Sort = 'recent'; // 'recent' | 'oldest' | 'name'
 
+function contactDate(c) {
+  // GHL uses several field names depending on API version
+  const raw = c.dateAdded || c.date_added || c.createdAt || c.created_at || c.dateCreated || '';
+  return raw ? new Date(raw) : new Date(0);
+}
+
 function sortedT1Contacts() {
   const arr = [...t1Contacts];
+  console.log(`[Sort] mode="${t1Sort}" — sorting ${arr.length} contacts`);
+  console.log('[Sort] Before — first 3:', arr.slice(0,3).map(c => ({ name: contactName(c), date: contactDate(c).toISOString() })));
+
   if (t1Sort === 'recent') {
-    arr.sort((a, b) => new Date(b.dateAdded||0) - new Date(a.dateAdded||0));
+    arr.sort((a, b) => contactDate(b) - contactDate(a));
   } else if (t1Sort === 'oldest') {
-    arr.sort((a, b) => new Date(a.dateAdded||0) - new Date(b.dateAdded||0));
+    arr.sort((a, b) => contactDate(a) - contactDate(b));
   } else {
-    arr.sort((a, b) => (a.name||'').localeCompare(b.name||''));
+    // FIX: use contactName() so firstName+lastName contacts sort correctly
+    arr.sort((a, b) => contactName(a).localeCompare(contactName(b), 'ar', { sensitivity: 'base' }));
   }
+
+  console.log('[Sort] After — first 3:', arr.slice(0,3).map(c => ({ name: contactName(c), date: contactDate(c).toISOString() })));
   return arr;
 }
 
@@ -487,12 +501,13 @@ function filteredContacts() {
 
 function renderGrid() {
   const grid = document.getElementById('t1-grid');
-  if (!grid) return;
+  if (!grid) { console.warn('[renderGrid] #t1-grid not found in DOM'); return; }
   const results = filteredContacts();
   const q = (document.getElementById('t1-search')?.value || '').trim();
+  console.log(`[renderGrid] rendering ${results.length} cards (query="${q}")`);
   grid.innerHTML = results.length
     ? results.map(c => buildCard(c)).join('')
-    : `<div class="no-results">No contacts match "${h(q)}"</div>`;
+    : `<div class="no-results">${q ? `No contacts match "${h(q)}"` : 'No contacts to display'}</div>`;
   const countEl = document.getElementById('t1-search-count');
   if (countEl) countEl.textContent = q ? `${results.length} of ${t1Contacts.length}` : '';
   // Restore checkbox states
@@ -503,6 +518,7 @@ function renderGrid() {
 }
 
 function applySort(mode, btn) {
+  console.log(`[applySort] clicked — mode="${mode}", t1Contacts.length=${t1Contacts.length}`);
   t1Sort = mode;
   document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -552,6 +568,7 @@ function renderTab1() {
       <select class="bulk-sel" id="bulk-city"><option value="">-- City --</option>${CITIES.map(s=>`<option>${s}</option>`).join('')}</select>
       <select class="bulk-sel" id="bulk-src"><option value="">-- Source --</option>${SOURCES.map(s=>`<option>${s}</option>`).join('')}</select>
       <button class="bulk-save" onclick="bulkSave()">Bulk Save</button>
+      <button class="bulk-archive" onclick="bulkArchiveDuplicates()">⚠️ Bulk Archive as Duplicate</button>
       <button class="bulk-clear" onclick="deselectAllT1()">✕ Clear</button>
     </div>
     <div class="cards-grid" id="t1-grid">${sortedT1Contacts().map(c => buildCard(c)).join('')}</div>`;
@@ -783,6 +800,34 @@ async function bulkSave() {
   deselectAllT1();
   toast(`✓ ${saved} contacts updated`, 'success');
   updateCount();
+}
+
+async function bulkArchiveDuplicates() {
+  const ids = [...t1Selected];
+  if (!ids.length) return;
+  if (!confirm(`Archive ${ids.length} selected contact${ids.length > 1 ? 's' : ''} as duplicates?\n\nThis will tag them as "duplicate" and "archived" in GHL.`)) return;
+
+  let archived = 0, failed = 0;
+  for (const id of ids) {
+    const card = document.getElementById(`card-${id}`);
+    if (card) card.classList.add('saving');
+    try {
+      await ghlAddTags(id, ['duplicate', 'archived', 'cleanup-done']);
+      if (card) { card.classList.add('done'); setTimeout(() => card.remove(), 320); }
+      archived++;
+    } catch(e) {
+      console.warn('Bulk archive error for', id, e);
+      if (card) card.classList.remove('saving');
+      failed++;
+    }
+  }
+
+  t1Contacts = t1Contacts.filter(c => !ids.includes(c.id));
+  deselectAllT1();
+  updateCount();
+
+  if (archived) toast(`🗑️ ${archived} contact${archived > 1 ? 's' : ''} archived as duplicate${archived > 1 ? 's' : ''}`, 'warning');
+  if (failed)   toast(`⚠ ${failed} contact${failed > 1 ? 's' : ''} failed — check console`, 'error');
 }
 
 function updateCount() {
