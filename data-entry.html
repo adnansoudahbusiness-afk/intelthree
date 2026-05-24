@@ -45,6 +45,8 @@ body{font-family:var(--font);background:#F5F4FC;color:var(--g900);min-height:100
 .tab-btn.active{background:var(--purple-light);color:var(--purple-dark)}
 .tb-logout{padding:7px 12px;border-radius:8px;border:1.5px solid var(--g200);background:#fff;font-family:var(--font);font-size:12px;font-weight:600;color:var(--g600);cursor:pointer;flex-shrink:0}
 .tb-logout:hover{border-color:var(--red);color:var(--red)}
+.tb-verify{padding:7px 12px;border-radius:8px;border:1.5px solid var(--purple);background:#fff;font-family:var(--font);font-size:12px;font-weight:600;color:var(--purple);cursor:pointer;flex-shrink:0}
+.tb-verify:hover{background:var(--purple);color:#fff}
 
 /* GLOBAL LOADING */
 #global-loading{padding:60px 24px;text-align:center}
@@ -234,6 +236,7 @@ table.ideas-table{width:100%;border-collapse:collapse;font-size:13px}
       <button class="tab-btn"        id="btn-sitevisit"  onclick="switchTab('sitevisit')">3. Site Visit Notes</button>
       <button class="tab-btn"        id="btn-content"    onclick="switchTab('content')">4. Content Ideas</button>
     </nav>
+    <button class="tb-verify" onclick="verifyContactCounts()">Verify Counts</button>
     <button class="tb-logout" onclick="doLogout()">Logout</button>
   </div>
 
@@ -453,10 +456,68 @@ let t1Selected = new Set();
 const t1State = {}; // contactId -> {specialty, city, source}
 
 function tab1Contacts() {
-  return allContacts.filter(c =>
-    hasTag(c, 'cleanup-done') &&
-    (isBlank(cf(c,'specialty')) || isBlank(cf(c,'city')) || isBlank(cf(c,'source')))
+  const all = allContacts;
+  const filtered = all.filter(c =>
+    (isBlank(cf(c,'specialty')) || isBlank(cf(c,'city')) || isBlank(cf(c,'source'))) &&
+    !hasTag(c, 'archived') &&
+    !hasTag(c, 'duplicate')
   );
+
+  const excluded = all.filter(c =>
+    hasTag(c, 'archived') || hasTag(c, 'duplicate') ||
+    (!isBlank(cf(c,'specialty')) && !isBlank(cf(c,'city')) && !isBlank(cf(c,'source')))
+  );
+  const excludedSamples = excluded.slice(0, 5).map(c => ({
+    name: contactName(c),
+    tags: (c.tags || []).join(', '),
+    specialty: cf(c,'specialty'),
+    city: cf(c,'city'),
+    source: cf(c,'source')
+  }));
+
+  console.log('[TAB 1 Filter] Total contacts:', all.length);
+  console.log('[TAB 1 Filter] After filter:', filtered.length);
+  console.log('[TAB 1 Filter] Sample excluded:', excludedSamples);
+
+  return filtered;
+}
+
+function verifyContactCounts() {
+  const total = allContacts.length;
+
+  const hasAllFields = allContacts.filter(c => {
+    const spec = cf(c, 'specialty');
+    const city = cf(c, 'city');
+    const source = cf(c, 'source');
+    return spec && city && source;
+  }).length;
+
+  const archived = allContacts.filter(c =>
+    c.tags?.includes('archived') || c.tags?.includes('duplicate')
+  ).length;
+
+  const missingAny = allContacts.filter(c => {
+    const spec = cf(c, 'specialty');
+    const city = cf(c, 'city');
+    const source = cf(c, 'source');
+    return !spec || !city || !source;
+  }).length;
+
+  const needsCleaning = allContacts.filter(c => {
+    const spec = cf(c, 'specialty');
+    const city = cf(c, 'city');
+    const source = cf(c, 'source');
+    const isArchived = c.tags?.includes('archived') || c.tags?.includes('duplicate');
+    return (!spec || !city || !source) && !isArchived;
+  }).length;
+
+  console.log('=== VERIFICATION ===');
+  console.log('Total contacts:', total);
+  console.log('Has all 3 fields:', hasAllFields);
+  console.log('Archived/Duplicate:', archived);
+  console.log('Missing any field:', missingAny);
+  console.log('Needs cleaning (missing & not archived):', needsCleaning);
+  console.log('Should match TAB 1 count:', t1Contacts.length);
 }
 
 let t1Sort = 'recent'; // 'recent' | 'oldest' | 'name'
@@ -537,6 +598,7 @@ function clearSearch() {
 
 function renderTab1() {
   t1Contacts = tab1Contacts();
+  verifyContactCounts();
   t1Selected.clear();
   const panel = document.getElementById('panel-cleanup');
   if (!t1Contacts.length) {
@@ -736,6 +798,8 @@ async function saveCard(id) {
 
   try {
     if (fields.length) await ghlUpdate(id, fields);
+    await ghlAddTags(id, ['cleanup-done']);
+    console.log('Contact after save, tags:', (c.tags || []).concat(['cleanup-done']));
     toast(`✓ ${contactName(c)} updated`, 'success');
     card.classList.add('done');
     setTimeout(() => {
