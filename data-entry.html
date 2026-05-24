@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThreeUp Data Entry</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --purple:#A396DC;--purple-dark:#8A7BC8;--purple-light:#EDE9F8;
+  --green:#22C55E;--green-bg:#DCFCE7;--red:#EF4444;--red-bg:#FEE2E2;
+  --amber:#F59E0B;--amber-bg:#FEF3C7;
+  --g50:#F9FAFB;--g100:#F3F4F6;--g200:#E5E7EB;--g300:#D1D5DB;
+  --g400:#9CA3AF;--g500:#6B7280;--g600:#4B5563;--g700:#374151;--g800:#1F2937;--g900:#111827;
+  --font:'Syne',sans-serif;--mono:'DM Mono',monospace;
+}
+body{font-family:var(--font);background:#F5F4FC;color:var(--g900);min-height:100vh}
+
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#EDE9F8 0%,#F5F4FC 100%)}
+.login-box{background:#fff;border-radius:20px;padding:40px;width:340px;box-shadow:0 8px 40px rgba(163,150,220,.18);text-align:center}
+.login-logo{width:52px;height:52px;background:var(--purple);border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;margin:0 auto 18px}
+.login-title{font-size:22px;font-weight:800;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--g500);margin-bottom:24px}
+.login-input{width:100%;padding:11px 14px;border:1.5px solid var(--g200);border-radius:10px;font-family:var(--font);font-size:14px;outline:none;transition:border-color .15s;margin-bottom:12px}
+.login-input:focus{border-color:var(--purple)}
+.login-btn{width:100%;padding:12px;background:var(--purple);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;transition:background .15s}
+.login-btn:hover{background:var(--purple-dark)}
+.login-err{color:var(--red);font-size:13px;margin-top:10px;min-height:18px}
+
+/* APP */
+#app{display:flex;flex-direction:column;min-height:100vh}
+.hidden{display:none!important}
+
+/* TOPBAR */
+#topbar{background:#fff;border-bottom:1px solid var(--g200);height:56px;display:flex;align-items:center;padding:0 20px;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.brand{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.brand-logo{width:30px;height:30px;background:var(--purple);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px}
+.brand-name{font-weight:700;font-size:14px}
+.brand-sub{font-size:9px;color:var(--purple);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-family:var(--mono)}
+.tab-nav{display:flex;gap:4px;flex:1;justify-content:center}
+.tab-btn{padding:7px 14px;border-radius:8px;border:none;background:transparent;font-family:var(--font);font-size:13px;font-weight:600;color:var(--g500);cursor:pointer;transition:all .15s;white-space:nowrap}
+.tab-btn:hover{background:var(--g100);color:var(--g800)}
+.tab-btn.active{background:var(--purple-light);color:var(--purple-dark)}
+.tb-logout{padding:7px 12px;border-radius:8px;border:1.5px solid var(--g200);background:#fff;font-family:var(--font);font-size:12px;font-weight:600;color:var(--g600);cursor:pointer;flex-shrink:0}
+.tb-logout:hover{border-color:var(--red);color:var(--red)}
+
+/* GLOBAL LOADING */
+#global-loading{padding:60px 24px;text-align:center}
+.spin{width:40px;height:40px;border:3px solid var(--purple-light);border-top-color:var(--purple);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin-msg{font-size:14px;color:var(--g500);font-family:var(--mono)}
+
+/* TAB PANELS */
+.tab-panel{flex:1;padding:20px 24px;max-width:1200px;width:100%;margin:0 auto}
+
+/* PROGRESS BAR */
+.progress-bar{background:#fff;border:1px solid var(--g200);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.prog-label{font-size:13px;font-weight:600;color:var(--g700);flex:1}
+.prog-count{font-size:13px;font-family:var(--mono);color:var(--purple);font-weight:700}
+.prog-btn{padding:6px 14px;border-radius:7px;border:none;background:var(--purple);color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer}
+
+/* SEARCH BAR */
+.search-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.search-input{flex:1;padding:9px 14px 9px 36px;border:1.5px solid var(--g200);border-radius:9px;font-family:var(--font);font-size:13px;outline:none;transition:border-color .15s;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239CA3AF' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E") no-repeat 11px center}
+.search-input:focus{border-color:var(--purple)}
+.search-clear{padding:8px 12px;border-radius:8px;border:1.5px solid var(--g200);background:#fff;font-size:12px;color:var(--g500);cursor:pointer;font-family:var(--font);font-weight:600}
+.search-clear:hover{border-color:var(--g400);color:var(--g800)}
+.search-count{font-size:12px;color:var(--g400);font-family:var(--mono);white-space:nowrap}
+.no-results{grid-column:1/-1;text-align:center;padding:32px;color:var(--g400);font-size:13px}
+
+/* SORT BAR */
+.sort-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.sort-label{font-size:12px;font-weight:600;color:var(--g600)}
+.sort-btn{padding:5px 12px;border-radius:7px;border:1.5px solid var(--g200);background:#fff;font-family:var(--font);font-size:12px;font-weight:600;color:var(--g500);cursor:pointer;transition:all .12s}
+.sort-btn:hover{border-color:var(--purple);color:var(--purple)}
+.sort-btn.active{background:var(--purple-light);border-color:var(--purple);color:var(--purple-dark)}
+
+/* BULK ACTION BAR */
+#bulk-bar{background:var(--purple-light);border:1.5px solid var(--purple);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bulk-label{font-size:13px;font-weight:700;color:var(--purple-dark);white-space:nowrap}
+.bulk-sel{padding:7px 10px;border-radius:7px;border:1.5px solid var(--purple);background:#fff;font-family:var(--font);font-size:13px;color:var(--g800);outline:none;cursor:pointer}
+.bulk-save{padding:7px 16px;border-radius:7px;border:none;background:var(--purple);color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer}
+.bulk-save:hover{background:var(--purple-dark)}
+.bulk-clear{padding:7px 12px;border-radius:7px;border:1.5px solid var(--purple);background:transparent;color:var(--purple-dark);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer}
+
+/* CARDS GRID */
+.cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:900px){.cards-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.cards-grid{grid-template-columns:1fr}}
+
+/* CONTACT CARD */
+.ccard{background:#fff;border-radius:12px;border:1.5px solid var(--g200);padding:16px;transition:opacity .3s,transform .3s;position:relative}
+.ccard.saving{opacity:.4;pointer-events:none}
+.ccard.done{opacity:0;transform:scale(.95);pointer-events:none}
+.ccard-check{position:absolute;top:12px;right:12px}
+.ccard-check input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--purple)}
+.ccard-name{font-size:15px;font-weight:700;padding-right:24px;margin-bottom:2px}
+.ccard-company{font-size:12px;font-weight:600;color:var(--g600);margin-bottom:8px}
+.ccard-no-company{font-size:11px;color:var(--g300);margin-bottom:8px;font-style:italic}
+.ccard-existing{background:var(--g50);border:1px solid var(--g200);border-radius:7px;padding:8px 10px;margin-bottom:8px}
+.ccard-existing-label{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--g500);margin-bottom:5px}
+.ccard-existing-row{font-size:11px;color:var(--g700);line-height:1.6;display:flex;gap:5px}
+.ccard-existing-row::before{content:'•';color:var(--g400);flex-shrink:0}
+.ccard-existing-key{color:var(--g500);margin-right:2px}
+.ccard-existing-val{color:var(--g800);font-weight:600;word-break:break-word}
+.ccard-tags{font-size:11px;color:var(--g500);margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--g100);line-height:1.5}
+.ccard-tags-label{font-weight:700;color:var(--g600);margin-right:4px}
+.ccard-note{font-size:11px;color:var(--g600);background:var(--g50);border-radius:6px;padding:7px 9px;margin-bottom:8px;line-height:1.5;border-left:3px solid var(--g200)}
+.ccard-note-label{font-weight:700;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--g500);margin-bottom:3px}
+.ccard-ghl-link{display:block;font-size:11px;color:var(--purple);text-decoration:none;font-weight:600;margin-bottom:10px;padding:5px 8px;border-radius:6px;border:1px solid var(--purple-light);background:var(--purple-light);text-align:center;transition:background .12s}
+.ccard-ghl-link:hover{background:#DDD9F5}
+.ccard-meta{display:flex;flex-direction:column;gap:3px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--g100)}
+.ccard-meta-row{font-size:12px;color:var(--g500);font-family:var(--mono);display:flex;align-items:center;gap:5px}
+.ccard-meta-row .ico{font-style:normal;font-size:11px}
+.missing-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.miss-tag{padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;background:var(--red-bg);color:var(--red);letter-spacing:.03em}
+
+.field-block{margin-bottom:12px}
+.field-lbl{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--g500);margin-bottom:6px}
+.btn-row{display:flex;flex-wrap:wrap;gap:5px}
+.sel-btn{padding:5px 11px;border-radius:7px;border:1.5px solid var(--g200);background:#fff;font-family:var(--font);font-size:12px;font-weight:600;color:var(--g700);cursor:pointer;transition:all .12s}
+.sel-btn:hover{border-color:var(--purple);color:var(--purple)}
+.sel-btn.selected{background:var(--purple);border-color:var(--purple);color:#fff}
+
+.save-btn{width:100%;padding:10px;border-radius:8px;border:none;background:var(--purple);color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;margin-top:14px;transition:background .15s}
+.save-btn:hover{background:var(--purple-dark)}
+.save-btn:disabled{background:var(--g300);cursor:not-allowed}
+.archive-btn{width:100%;padding:8px;border-radius:8px;border:1.5px solid #FCA5A5;background:var(--red-bg);color:#B91C1C;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;margin-top:6px;transition:all .15s}
+.archive-btn:hover{background:#FCA5A5;border-color:var(--red)}
+
+/* LIST ITEMS (Tab 2 & 3) */
+.note-list{display:flex;flex-direction:column;gap:14px}
+.note-card{background:#fff;border-radius:12px;border:1.5px solid var(--g200);padding:18px}
+.note-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--g100)}
+.note-name{font-size:15px;font-weight:700}
+.note-date{font-size:11px;color:var(--g400);font-family:var(--mono);margin-top:2px}
+.note-date-badge{padding:3px 10px;border-radius:999px;background:var(--amber-bg);color:#92400E;font-size:11px;font-weight:600;font-family:var(--mono)}
+
+.form-section{margin-bottom:14px}
+.form-section-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--g600);margin-bottom:8px}
+.radio-group{display:flex;flex-direction:column;gap:7px}
+.radio-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--g800);cursor:pointer}
+.radio-row input{accent-color:var(--purple);width:15px;height:15px;cursor:pointer}
+.check-group{display:flex;flex-direction:column;gap:7px}
+.check-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--g800);cursor:pointer}
+.check-row input{accent-color:var(--purple);width:15px;height:15px;cursor:pointer}
+
+.form-textarea{width:100%;padding:10px 12px;border:1.5px solid var(--g200);border-radius:8px;font-family:var(--font);font-size:13px;resize:vertical;min-height:72px;outline:none;transition:border-color .15s}
+.form-textarea:focus{border-color:var(--purple)}
+.form-input{width:100%;padding:9px 12px;border:1.5px solid var(--g200);border-radius:8px;font-family:var(--font);font-size:13px;outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--purple)}
+.form-input-sm{width:140px;padding:8px 10px;border:1.5px solid var(--g200);border-radius:8px;font-family:var(--font);font-size:13px;outline:none;transition:border-color .15s}
+.form-input-sm:focus{border-color:var(--purple)}
+.input-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.input-label{font-size:13px;color:var(--g600);white-space:nowrap}
+
+.cond-block{background:var(--g50);border:1px solid var(--g200);border-radius:8px;padding:12px;margin-top:8px}
+.plan-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+
+/* TAB 4: CONTENT IDEAS */
+.content-form{background:#fff;border-radius:12px;border:1.5px solid var(--g200);padding:20px;margin-bottom:20px}
+.content-form-title{font-size:15px;font-weight:700;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--g100)}
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--g500);margin-bottom:7px;display:block}
+.radio-inline{display:flex;flex-wrap:wrap;gap:10px}
+.radio-inline label{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--g700);cursor:pointer}
+.radio-inline input{accent-color:var(--purple);cursor:pointer}
+.check-inline{display:flex;flex-wrap:wrap;gap:10px}
+.check-inline label{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--g700);cursor:pointer}
+.check-inline input{accent-color:var(--purple);cursor:pointer}
+.submit-btn{padding:10px 22px;border-radius:9px;border:none;background:var(--purple);color:#fff;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;transition:background .15s}
+.submit-btn:hover{background:var(--purple-dark)}
+
+/* IDEAS TABLE */
+.ideas-table-wrap{background:#fff;border-radius:12px;border:1.5px solid var(--g200);overflow:hidden}
+.ideas-table-hdr{padding:14px 18px;border-bottom:1px solid var(--g200);display:flex;justify-content:space-between;align-items:center}
+.ideas-table-title{font-size:14px;font-weight:700}
+.ideas-count{font-size:12px;color:var(--g400);font-family:var(--mono)}
+table.ideas-table{width:100%;border-collapse:collapse;font-size:13px}
+.ideas-table th{background:var(--g50);padding:9px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--g500);border-bottom:1px solid var(--g200)}
+.ideas-table td{padding:10px 14px;border-bottom:1px solid var(--g100);color:var(--g800);vertical-align:top}
+.ideas-table tr:last-child td{border-bottom:none}
+.ideas-table tr:hover td{background:var(--g50)}
+.pri-badge{padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase}
+.pri-badge.High{background:var(--red-bg);color:var(--red)}
+.pri-badge.Medium{background:var(--amber-bg);color:#92400E}
+.pri-badge.Low{background:var(--green-bg);color:#15803D}
+.del-btn{padding:4px 10px;border-radius:6px;border:1.5px solid var(--g200);background:transparent;font-size:11px;font-weight:600;color:var(--g500);cursor:pointer}
+.del-btn:hover{border-color:var(--red);color:var(--red)}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:40px 20px;color:var(--g400);font-size:13px}
+.empty-icon{font-size:32px;margin-bottom:10px}
+.empty-title{font-size:15px;font-weight:700;color:var(--g600);margin-bottom:4px}
+
+/* TOAST */
+#toast-root{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.14);animation:slideIn .2s ease;pointer-events:none;max-width:320px}
+.toast.success{background:#166534;color:#fff}
+.toast.error{background:#991B1B;color:#fff}
+.toast.warning{background:#92400E;color:#fff}
+@keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeOut{to{opacity:0;transform:translateX(40px)}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">3UP</div>
+    <div class="login-title">Data Entry</div>
+    <div class="login-sub">Admin access required</div>
+    <input class="login-input" type="password" id="pw-input" placeholder="Password" autocomplete="current-password">
+    <button class="login-btn" onclick="doLogin()">Enter Dashboard</button>
+    <div class="login-err" id="pw-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden" style="display:flex;flex-direction:column;min-height:100vh">
+  <div id="topbar">
+    <div class="brand">
+      <div class="brand-logo">3UP</div>
+      <div><div class="brand-name">ThreeUp</div><div class="brand-sub">Data Entry</div></div>
+    </div>
+    <nav class="tab-nav">
+      <button class="tab-btn active" id="btn-cleanup"    onclick="switchTab('cleanup')">1. Missing Data</button>
+      <button class="tab-btn"        id="btn-discovery"  onclick="switchTab('discovery')">2. Discovery Notes</button>
+      <button class="tab-btn"        id="btn-sitevisit"  onclick="switchTab('sitevisit')">3. Site Visit Notes</button>
+      <button class="tab-btn"        id="btn-content"    onclick="switchTab('content')">4. Content Ideas</button>
+    </nav>
+    <button class="tb-logout" onclick="doLogout()">Logout</button>
+  </div>
+
+  <div id="global-loading">
+    <div class="spin"></div>
+    <div class="spin-msg" id="fetch-msg">Loading contacts from GHL...</div>
+  </div>
+
+  <div id="panel-cleanup"   class="tab-panel hidden"></div>
+  <div id="panel-discovery" class="tab-panel hidden"></div>
+  <div id="panel-sitevisit" class="tab-panel hidden"></div>
+  <div id="panel-content"   class="tab-panel hidden"></div>
+</div>
+
+<div id="toast-root"></div>
+
+<script>
+/* ══════════════════════════════════════
+   CONFIG
+══════════════════════════════════════ */
+const CFG = {
+  key:  'pit-cc34a5f9-fe31-42ff-acbc-c9cf72715da1',
+  loc:  'ck8gYVHUEnLEIg0OVsLd',
+  base: 'https://services.leadconnectorhq.com',
+  pw:   'admin3up2026',
+  f: {
+    specialty:       'S4UO0tXC5s38qpsET42Z',
+    city:            'rUxALKB5pbMjKMSqePCp',
+    source:          'cqMoQkgXs97QE93t3kWj',
+    lost_reason:     '1Gq0IaHtZqOJkDKlpR11',
+    objection:       '5tluAbbNpCvyrfiOSEIu',
+    monthly_value:   'fiJc1wo9y6BYsXvJ4L5c',
+    if_not_closed:   '3IY7xFbYOjscqPMyBpZ6',
+    closed_won:      'DIufdodQH2J57Yj5wEKd',
+    mtg_done:        'bTvbFAG5L6yeHBxlaxUt',
+    disc_date:       'V76zZQ62VoIGuPCgxcF1',
+    sv_booked:       'YIqfpgoxtz4arM39sc7f',
+    sv_done:         '8NoJirF7iHg8oUD021Q4',
+    sv_date:         'RBW58oCC7EKL4YJ2MMtA'
+  }
+};
+
+const HDRS = {
+  'Authorization': `Bearer ${CFG.key}`,
+  'Version': '2021-07-28',
+  'Content-Type': 'application/json'
+};
+
+const SPECIALTIES = ['Dentistry','Dermatology','Physiotherapy','Ophthalmology','General Practice','Gynecology','Orthopedics','Pediatrics','ENT','Cardiology','Other'];
+const CITIES      = ['Amman','Irbid','Zarqa','Aqaba','Salt','Madaba','Karak','Other'];
+const SOURCES     = ['Meta Ad','Website','Referral','Outreach','Other'];
+
+/* ══════════════════════════════════════
+   UTILITIES
+══════════════════════════════════════ */
+let allContacts = [];
+
+function cf(c, key) {
+  const id = CFG.f[key];
+  if (!id || !c.customFields) return '';
+  const found = c.customFields.find(f => f.id === id);
+  return found ? String(found.value || found.fieldValue || '').trim() : '';
+}
+
+function hasTag(c, tag) {
+  return (c.tags || []).map(t => t.toLowerCase()).includes(tag.toLowerCase());
+}
+
+function isBlank(v) {
+  return !v || v.toLowerCase() === 'unknown' || v === '—';
+}
+
+function within7Days(dateStr) {
+  if (!dateStr) return true;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return true;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 7);
+  return d >= cutoff;
+}
+
+function contactName(c) {
+  if (c.name && c.name.trim()) return c.name.trim();
+  if (c.fullName && c.fullName.trim()) return c.fullName.trim();
+  const first = (c.firstName || '').trim();
+  const last  = (c.lastName  || '').trim();
+  if (first || last) return [first, last].filter(Boolean).join(' ');
+  if (c.contactName && c.contactName.trim()) return c.contactName.trim();
+  return 'Unknown';
+}
+
+function fmtDate(str) {
+  if (!str) return '—';
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return str.split('T')[0] || '—';
+  return d.toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+function h(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ══════════════════════════════════════
+   GHL API
+══════════════════════════════════════ */
+async function ghlUpdate(id, customFields) {
+  const res = await fetch(`${CFG.base}/contacts/${id}`, {
+    method: 'PUT', headers: HDRS,
+    body: JSON.stringify({ customFields })
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function ghlAddTags(id, tags) {
+  const res = await fetch(`${CFG.base}/contacts/${id}/tags`, {
+    method: 'POST', headers: HDRS,
+    body: JSON.stringify({ tags })
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+async function ghlRemoveTags(id, tags) {
+  const res = await fetch(`${CFG.base}/contacts/${id}/tags`, {
+    method: 'DELETE', headers: HDRS,
+    body: JSON.stringify({ tags })
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+/* ══════════════════════════════════════
+   FETCH
+══════════════════════════════════════ */
+async function fetchAllContacts() {
+  const contacts = [];
+  let page = 1;
+  let hasMore = true;
+  while (hasMore) {
+    document.getElementById('fetch-msg').textContent = `Fetching contacts... ${contacts.length}`;
+    const res = await fetch(
+      `${CFG.base}/contacts/?locationId=${CFG.loc}&limit=100&page=${page}`,
+      { headers: HDRS }
+    );
+    if (!res.ok) throw new Error(`GHL ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    const batch = data.contacts || [];
+    if (batch.length > 0) {
+      contacts.push(...batch);
+      if (batch.length < 100) hasMore = false; else page++;
+    } else { hasMore = false; }
+  }
+  if (contacts.length) console.log('Sample contact fields:', JSON.parse(JSON.stringify(contacts[0])));
+  return contacts;
+}
+
+/* ══════════════════════════════════════
+   AUTH
+══════════════════════════════════════ */
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+
+function doLogin() {
+  const pw = document.getElementById('pw-input').value.trim();
+  if (pw !== CFG.pw) {
+    const el = document.getElementById('pw-input');
+    document.getElementById('pw-err').textContent = 'Incorrect password.';
+    el.style.borderColor = 'var(--red)';
+    setTimeout(() => { el.style.borderColor = ''; document.getElementById('pw-err').textContent = ''; }, 2000);
+    return;
+  }
+  sessionStorage.setItem('de_auth', '1');
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  loadData();
+}
+
+function doLogout() {
+  sessionStorage.removeItem('de_auth');
+  location.reload();
+}
+
+/* ══════════════════════════════════════
+   TAB SWITCHING
+══════════════════════════════════════ */
+let currentTab = 'cleanup';
+
+function switchTab(tab) {
+  ['cleanup','discovery','sitevisit','content'].forEach(t => {
+    document.getElementById(`panel-${t}`).classList.add('hidden');
+    document.getElementById(`btn-${t}`).classList.remove('active');
+  });
+  document.getElementById(`panel-${tab}`).classList.remove('hidden');
+  document.getElementById(`btn-${tab}`).classList.add('active');
+  currentTab = tab;
+}
+
+/* ══════════════════════════════════════
+   LOAD DATA
+══════════════════════════════════════ */
+async function loadData() {
+  try {
+    allContacts = await fetchAllContacts();
+    document.getElementById('global-loading').classList.add('hidden');
+    renderTab1();
+    renderTab2();
+    renderTab3();
+    renderTab4();
+    switchTab('cleanup');
+  } catch(e) {
+    document.getElementById('fetch-msg').textContent = 'Error: ' + e.message;
+    console.error(e);
+  }
+}
+
+/* ══════════════════════════════════════
+   TAB 1: MISSING DATA CLEANUP
+══════════════════════════════════════ */
+let t1Contacts = [];
+let t1Selected = new Set();
+const t1State = {}; // contactId -> {specialty, city, source}
+
+function tab1Contacts() {
+  return allContacts.filter(c =>
+    hasTag(c, 'cleanup-done') &&
+    (isBlank(cf(c,'specialty')) || isBlank(cf(c,'city')) || isBlank(cf(c,'source')))
+  );
+}
+
+let t1Sort = 'recent'; // 'recent' | 'oldest' | 'name'
+
+function sortedT1Contacts() {
+  const arr = [...t1Contacts];
+  if (t1Sort === 'recent') {
+    arr.sort((a, b) => new Date(b.dateAdded||0) - new Date(a.dateAdded||0));
+  } else if (t1Sort === 'oldest') {
+    arr.sort((a, b) => new Date(a.dateAdded||0) - new Date(b.dateAdded||0));
+  } else {
+    arr.sort((a, b) => (a.name||'').localeCompare(b.name||''));
+  }
+  return arr;
+}
+
+function filteredContacts() {
+  const q = (document.getElementById('t1-search')?.value || '').toLowerCase().trim();
+  const sorted = sortedT1Contacts();
+  if (!q) return sorted;
+  return sorted.filter(c => {
+    const name    = contactName(c).toLowerCase();
+    const phone   = (c.phone || c.phoneRaw || '').toLowerCase();
+    const email   = (c.email || '').toLowerCase();
+    const company = (c.companyName || '').toLowerCase();
+    const tags    = (c.tags || []).join(' ').toLowerCase();
+    return name.includes(q) || phone.includes(q) || email.includes(q) || company.includes(q) || tags.includes(q);
+  });
+}
+
+function renderGrid() {
+  const grid = document.getElementById('t1-grid');
+  if (!grid) return;
+  const results = filteredContacts();
+  const q = (document.getElementById('t1-search')?.value || '').trim();
+  grid.innerHTML = results.length
+    ? results.map(c => buildCard(c)).join('')
+    : `<div class="no-results">No contacts match "${h(q)}"</div>`;
+  const countEl = document.getElementById('t1-search-count');
+  if (countEl) countEl.textContent = q ? `${results.length} of ${t1Contacts.length}` : '';
+  // Restore checkbox states
+  t1Selected.forEach(id => {
+    const el = document.getElementById(`chk-${id}`);
+    if (el) el.checked = true;
+  });
+}
+
+function applySort(mode, btn) {
+  t1Sort = mode;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrid();
+}
+
+function applySearch() {
+  renderGrid();
+}
+
+function clearSearch() {
+  const input = document.getElementById('t1-search');
+  if (input) input.value = '';
+  renderGrid();
+}
+
+function renderTab1() {
+  t1Contacts = tab1Contacts();
+  t1Selected.clear();
+  const panel = document.getElementById('panel-cleanup');
+  if (!t1Contacts.length) {
+    panel.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">All contacts have complete data</div><div>No missing specialty, city, or source fields found.</div></div>`;
+    return;
+  }
+
+  panel.innerHTML = `
+    <div class="progress-bar">
+      <span class="prog-label">Missing data fields</span>
+      <span class="prog-count" id="t1-count">${t1Contacts.length} contacts remaining</span>
+      <button class="prog-btn" onclick="selectAllT1()">Select All</button>
+      <button class="prog-btn" style="background:var(--g500)" onclick="deselectAllT1()">Clear</button>
+    </div>
+    <div class="search-bar">
+      <input class="search-input" type="text" id="t1-search" placeholder="Search by name, phone, email, company..." oninput="applySearch()">
+      <button class="search-clear" onclick="clearSearch()">✕ Clear</button>
+      <span class="search-count" id="t1-search-count"></span>
+    </div>
+    <div class="sort-bar">
+      <span class="sort-label">Sort by:</span>
+      <button class="sort-btn active" onclick="applySort('recent',this)">Most Recent</button>
+      <button class="sort-btn" onclick="applySort('oldest',this)">Oldest</button>
+      <button class="sort-btn" onclick="applySort('name',this)">Name A–Z</button>
+    </div>
+    <div id="bulk-bar" class="hidden">
+      <span class="bulk-label" id="bulk-label">0 selected</span>
+      <select class="bulk-sel" id="bulk-spec"><option value="">-- Specialty --</option>${SPECIALTIES.map(s=>`<option>${s}</option>`).join('')}</select>
+      <select class="bulk-sel" id="bulk-city"><option value="">-- City --</option>${CITIES.map(s=>`<option>${s}</option>`).join('')}</select>
+      <select class="bulk-sel" id="bulk-src"><option value="">-- Source --</option>${SOURCES.map(s=>`<option>${s}</option>`).join('')}</select>
+      <button class="bulk-save" onclick="bulkSave()">Bulk Save</button>
+      <button class="bulk-clear" onclick="deselectAllT1()">✕ Clear</button>
+    </div>
+    <div class="cards-grid" id="t1-grid">${sortedT1Contacts().map(c => buildCard(c)).join('')}</div>`;
+  // reset search count on re-render
+  const countEl = document.getElementById('t1-search-count');
+  if (countEl) countEl.textContent = '';
+}
+
+function buildCard(c) {
+  const id = c.id;
+  const spec = cf(c,'specialty'); const city = cf(c,'city'); const src = cf(c,'source');
+  const missingSpec = isBlank(spec); const missingCity = isBlank(city); const missingSrc = isBlank(src);
+  const missingLabels = [missingSpec&&'Specialty', missingCity&&'City', missingSrc&&'Source'].filter(Boolean);
+  if (!t1State[id]) t1State[id] = { specialty: missingSpec?'':spec, city: missingCity?'':city, source: missingSrc?'':src };
+
+  const specBtns = missingSpec ? `<div class="field-block">
+    <div class="field-lbl">Specialty <span style="color:var(--red)">*</span></div>
+    <div class="btn-row">${SPECIALTIES.map(s=>`<button class="sel-btn${t1State[id].specialty===s?' selected':''}" onclick="pick('${id}','specialty','${s}',this)">${s}</button>`).join('')}</div>
+  </div>` : '';
+
+  const cityBtns = missingCity ? `<div class="field-block">
+    <div class="field-lbl">City <span style="color:var(--red)">*</span></div>
+    <div class="btn-row">${CITIES.map(s=>`<button class="sel-btn${t1State[id].city===s?' selected':''}" onclick="pick('${id}','city','${s}',this)">${s}</button>`).join('')}</div>
+  </div>` : '';
+
+  const srcBtns = missingSrc ? `<div class="field-block">
+    <div class="field-lbl">Source</div>
+    <div class="btn-row">${SOURCES.map(s=>`<button class="sel-btn${t1State[id].source===s?' selected':''}" onclick="pick('${id}','source','${s}',this)">${s}</button>`).join('')}</div>
+  </div>` : '';
+
+  const phone   = c.phone || c.phoneRaw || '';
+  const company = c.companyName || '';
+  const email   = c.email || '';
+  const added   = c.dateAdded ? fmtDate(c.dateAdded) : '';
+
+  // Tags: exclude internal workflow tags to reduce noise
+  const skipTags = new Set(['cleanup-done','meeting-booked','site-visit-done']);
+  const displayTags = (c.tags || []).filter(t => !skipTags.has(t.toLowerCase())).slice(0, 8);
+
+  // Latest note: GHL returns notes in contact.notes[] or contact.lastNote
+  const noteText = (c.notes && c.notes.length)
+    ? String(c.notes[0].body || c.notes[0].text || '').trim()
+    : (c.lastNote ? String(c.lastNote).trim() : '');
+  const noteSnippet = noteText.length > 80 ? noteText.substring(0, 80) + '…' : noteText;
+
+  // Existing custom field data — human-readable name lookup
+  const FIELD_NAMES = {
+    [CFG.f.specialty]:       'Specialty',
+    [CFG.f.city]:            'City',
+    [CFG.f.source]:          'Source',
+    [CFG.f.lost_reason]:     'Lost Reason',
+    [CFG.f.objection]:       'Objection',
+    [CFG.f.monthly_value]:   'Monthly Value',
+    [CFG.f.if_not_closed]:   'Notes',
+    [CFG.f.closed_won]:      'Closed Won',
+    [CFG.f.mtg_done]:        'Discovery Done',
+    [CFG.f.disc_date]:       'Discovery Date',
+    [CFG.f.sv_booked]:       'Site Visit Booked',
+    [CFG.f.sv_done]:         'Site Visit Done',
+    [CFG.f.sv_date]:         'Site Visit Date'
+  };
+  const existingFields = (c.customFields || [])
+    .map(f => {
+      const val = String(f.value || f.fieldValue || '').trim();
+      if (!val || val.toLowerCase() === 'false' || val === '0') return null;
+      const label = FIELD_NAMES[f.id] || f.name || f.fieldKey || f.id;
+      return { label, val };
+    })
+    .filter(Boolean)
+    .slice(0, 8);
+
+  const existingHTML = existingFields.length
+    ? `<div class="ccard-existing">
+        <div class="ccard-existing-label">📋 Existing Data</div>
+        ${existingFields.map(f =>
+          `<div class="ccard-existing-row">
+            <span class="ccard-existing-key">${h(f.label)}:</span>
+            <span class="ccard-existing-val">${h(f.val.length > 60 ? f.val.substring(0,60)+'…' : f.val)}</span>
+          </div>`
+        ).join('')}
+      </div>`
+    : '';
+
+  const ghlUrl = `https://app.gohighlevel.com/v2/location/${CFG.loc}/contacts/detail/${id}`;
+
+  return `<div class="ccard" id="card-${id}" data-cid="${id}">
+    <div class="ccard-check"><input type="checkbox" id="chk-${id}" onchange="toggleSelect('${id}',this.checked)"></div>
+    <div class="ccard-name">${h(contactName(c))}</div>
+    ${company
+      ? `<div class="ccard-company">🏢 ${h(company)}</div>`
+      : `<div class="ccard-no-company">No company name</div>`}
+    ${existingHTML}
+    <div class="ccard-meta">
+      ${phone ? `<div class="ccard-meta-row"><i class="ico">📱</i>${h(phone)}</div>` : ''}
+      ${email ? `<div class="ccard-meta-row"><i class="ico">📧</i>${h(email)}</div>` : ''}
+      ${added ? `<div class="ccard-meta-row"><i class="ico">📅</i>Added: ${h(added)}</div>` : ''}
+    </div>
+    ${displayTags.length ? `<div class="ccard-tags"><span class="ccard-tags-label">🏷️ Tags:</span>${h(displayTags.join(', '))}</div>` : ''}
+    ${noteSnippet ? `<div class="ccard-note"><div class="ccard-note-label">📝 Latest Note</div>"${h(noteSnippet)}"</div>` : ''}
+    <a class="ccard-ghl-link" href="${ghlUrl}" target="_blank" rel="noopener">🔗 View full contact in GHL ↗</a>
+    <div class="missing-tags">${missingLabels.map(l=>`<span class="miss-tag">Missing: ${l}</span>`).join('')}</div>
+    ${specBtns}${cityBtns}${srcBtns}
+    <button class="save-btn" onclick="saveCard('${id}')">SAVE & NEXT</button>
+    <button class="archive-btn" onclick="archiveDuplicate('${id}')">⚠️ Archive as Duplicate</button>
+  </div>`;
+}
+
+function pick(id, field, val, btn) {
+  if (!t1State[id]) t1State[id] = {};
+  t1State[id][field] = val;
+  const row = btn.closest('.btn-row');
+  row.querySelectorAll('.sel-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function toggleSelect(id, checked) {
+  if (checked) t1Selected.add(id); else t1Selected.delete(id);
+  updateBulkBar();
+}
+
+function selectAllT1() {
+  t1Contacts.forEach(c => {
+    const el = document.getElementById(`chk-${c.id}`);
+    if (el) { el.checked = true; t1Selected.add(c.id); }
+  });
+  updateBulkBar();
+}
+
+function deselectAllT1() {
+  t1Selected.clear();
+  document.querySelectorAll('.ccard-check input').forEach(el => { el.checked = false; });
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-bar');
+  const n = t1Selected.size;
+  if (n > 0) {
+    bar.classList.remove('hidden');
+    document.getElementById('bulk-label').textContent = `${n} selected`;
+  } else {
+    bar.classList.add('hidden');
+  }
+}
+
+async function saveCard(id) {
+  const state = t1State[id] || {};
+  const c = t1Contacts.find(x => x.id === id);
+  if (!c) return;
+
+  const missingSpec = isBlank(cf(c,'specialty'));
+  const missingCity = isBlank(cf(c,'city'));
+  const missingSrc  = isBlank(cf(c,'source'));
+
+  if (missingSpec && !state.specialty) { toast('Select a specialty first','error'); return; }
+  if (missingCity && !state.city)      { toast('Select a city first','error'); return; }
+
+  const card = document.getElementById(`card-${id}`);
+  card.classList.add('saving');
+
+  const fields = [];
+  if (missingSpec && state.specialty) fields.push({ id: CFG.f.specialty, value: state.specialty });
+  if (missingCity && state.city)      fields.push({ id: CFG.f.city,      value: state.city      });
+  if (missingSrc  && state.source)    fields.push({ id: CFG.f.source,    value: state.source    });
+
+  try {
+    if (fields.length) await ghlUpdate(id, fields);
+    toast(`✓ ${contactName(c)} updated`, 'success');
+    card.classList.add('done');
+    setTimeout(() => {
+      card.remove();
+      t1Contacts = t1Contacts.filter(x => x.id !== id);
+      t1Selected.delete(id);
+      updateCount();
+    }, 320);
+  } catch(e) {
+    card.classList.remove('saving');
+    toast('Save failed: ' + e.message.substring(0,80), 'error');
+  }
+}
+
+async function archiveDuplicate(id) {
+  const c = t1Contacts.find(x => x.id === id);
+  if (!c) return;
+  if (!confirm(`Archive "${contactName(c)}" as a duplicate?\n\nThis will tag the contact as "duplicate" and "archived" in GHL. It will no longer appear in analysis.`)) return;
+  const card = document.getElementById(`card-${id}`);
+  card.classList.add('saving');
+  try {
+    await ghlAddTags(id, ['duplicate', 'archived', 'cleanup-done']);
+    toast(`🗑️ ${contactName(c)} archived as duplicate`, 'warning');
+    card.classList.add('done');
+    setTimeout(() => {
+      card.remove();
+      t1Contacts = t1Contacts.filter(x => x.id !== id);
+      t1Selected.delete(id);
+      updateCount();
+    }, 320);
+  } catch(e) {
+    card.classList.remove('saving');
+    toast('Archive failed: ' + e.message.substring(0, 80), 'error');
+  }
+}
+
+async function bulkSave() {
+  const spec = document.getElementById('bulk-spec').value;
+  const city = document.getElementById('bulk-city').value;
+  const src  = document.getElementById('bulk-src').value;
+
+  if (!spec && !city && !src) { toast('Select at least one field to apply', 'error'); return; }
+
+  const ids = [...t1Selected];
+  let saved = 0;
+  for (const id of ids) {
+    const c = t1Contacts.find(x => x.id === id);
+    if (!c) continue;
+    const fields = [];
+    if (spec && isBlank(cf(c,'specialty'))) fields.push({ id: CFG.f.specialty, value: spec });
+    if (city && isBlank(cf(c,'city')))      fields.push({ id: CFG.f.city,      value: city });
+    if (src  && isBlank(cf(c,'source')))    fields.push({ id: CFG.f.source,    value: src  });
+    if (!fields.length) continue;
+    try {
+      await ghlUpdate(id, fields);
+      const card = document.getElementById(`card-${id}`);
+      if (card) { card.classList.add('done'); setTimeout(() => card.remove(), 320); }
+      saved++;
+    } catch(e) { console.warn('Bulk save error for', id, e); }
+  }
+  t1Contacts = t1Contacts.filter(c => !ids.includes(c.id));
+  deselectAllT1();
+  toast(`✓ ${saved} contacts updated`, 'success');
+  updateCount();
+}
+
+function updateCount() {
+  const el = document.getElementById('t1-count');
+  if (el) el.textContent = `${t1Contacts.length} contacts remaining`;
+  if (!t1Contacts.length) {
+    const grid = document.getElementById('t1-grid');
+    if (grid) grid.innerHTML = `<div style="grid-column:1/-1" class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">All done! No more missing data.</div></div>`;
+  }
+}
+
+/* ══════════════════════════════════════
+   TAB 2: DISCOVERY NOTES
+══════════════════════════════════════ */
+function renderTab2() {
+  const contacts = allContacts.filter(c =>
+    hasTag(c, 'meeting-done') &&
+    !isBlank(cf(c,'mtg_done')) || hasTag(c,'meeting-done')
+  ).filter(c =>
+    isBlank(cf(c,'if_not_closed')) &&
+    within7Days(cf(c,'disc_date'))
+  );
+
+  const panel = document.getElementById('panel-discovery');
+  if (!contacts.length) {
+    panel.innerHTML = `<div class="empty-state"><div class="empty-icon">📞</div><div class="empty-title">No recent discovery calls need notes</div><div>Contacts with "meeting-done" tag from last 7 days where notes are missing will appear here.</div></div>`;
+    return;
+  }
+
+  panel.innerHTML = `
+    <div class="progress-bar">
+      <span class="prog-label">Discovery calls needing notes</span>
+      <span class="prog-count">${contacts.length} remaining</span>
+    </div>
+    <div class="note-list">${contacts.map(c => buildDiscoveryCard(c)).join('')}</div>`;
+}
+
+function buildDiscoveryCard(c) {
+  const id = c.id;
+  const discDate = cf(c,'disc_date');
+  const phone = c.phone || '';
+  return `<div class="note-card" id="dcard-${id}">
+    <div class="note-header">
+      <div>
+        <div class="note-name">${h(contactName(c))}</div>
+        <div class="note-date">${h(phone)}</div>
+      </div>
+      <div class="note-date-badge">Discovery: ${fmtDate(discDate)}</div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-label">What happened in the call?</div>
+      <div class="radio-group">
+        <label class="radio-row"><input type="radio" name="outcome-${id}" value="sv_booked" onchange="toggleDiscFields('${id}',this.value)"> Site visit booked</label>
+        <label class="radio-row"><input type="radio" name="outcome-${id}" value="needs_time" onchange="toggleDiscFields('${id}',this.value)"> Interested but needs time</label>
+        <label class="radio-row"><input type="radio" name="outcome-${id}" value="objections" onchange="toggleDiscFields('${id}',this.value)"> Has objections (specify below)</label>
+        <label class="radio-row"><input type="radio" name="outcome-${id}" value="lost" onchange="toggleDiscFields('${id}',this.value)"> Not interested (lost)</label>
+      </div>
+    </div>
+
+    <div id="disc-obj-block-${id}" class="cond-block hidden">
+      <div class="form-section-label" style="margin-bottom:8px">Objections (check all that apply)</div>
+      <div class="check-group">
+        <label class="check-row"><input type="checkbox" name="obj-${id}" value="Price too high"> Price too high</label>
+        <label class="check-row"><input type="checkbox" name="obj-${id}" value="Not convinced / no trust"> Not convinced / no trust</label>
+        <label class="check-row"><input type="checkbox" name="obj-${id}" value="Already using competitor"> Already using competitor</label>
+        <label class="check-row"><input type="checkbox" name="obj-${id}" value="Bad timing"> Bad timing</label>
+        <label class="check-row"><input type="checkbox" name="obj-${id}" value="other-obj">
+          Other: <input type="text" class="form-input-sm" id="obj-other-${id}" placeholder="specify...">
+        </label>
+      </div>
+    </div>
+
+    <div class="form-section" style="margin-top:12px">
+      <div class="form-section-label">Notes</div>
+      <textarea class="form-textarea" id="disc-notes-${id}" placeholder="What was discussed, key points, next steps..."></textarea>
+    </div>
+
+    <div id="disc-followup-${id}" class="form-section hidden">
+      <div class="form-section-label">Next Action Date</div>
+      <input type="date" class="form-input-sm" id="disc-date-${id}">
+    </div>
+
+    <button class="save-btn" onclick="saveDiscovery('${id}')">SAVE</button>
+  </div>`;
+}
+
+function toggleDiscFields(id, outcome) {
+  const objBlock = document.getElementById(`disc-obj-block-${id}`);
+  const followup = document.getElementById(`disc-followup-${id}`);
+  objBlock.classList.toggle('hidden', outcome !== 'objections');
+  followup.classList.toggle('hidden', outcome === 'sv_booked' || outcome === 'lost');
+}
+
+async function saveDiscovery(id) {
+  const c = allContacts.find(x => x.id === id);
+  const outcomeEl = document.querySelector(`input[name="outcome-${id}"]:checked`);
+  if (!outcomeEl) { toast('Select what happened in the call', 'error'); return; }
+  const outcome = outcomeEl.value;
+
+  const notes = document.getElementById(`disc-notes-${id}`).value.trim();
+  const objChecks = [...document.querySelectorAll(`input[name="obj-${id}"]:checked`)];
+  const objOther = document.getElementById(`obj-other-${id}`)?.value.trim();
+  const objections = objChecks
+    .map(el => el.value === 'other-obj' ? (objOther||'Other') : el.value)
+    .filter(Boolean).join(', ');
+
+  const card = document.getElementById(`dcard-${id}`);
+  card.classList.add('saving');
+
+  try {
+    const customFields = [{ id: CFG.f.if_not_closed, value: notes || outcome }];
+    if (objections) customFields.push({ id: CFG.f.objection, value: objections });
+    await ghlUpdate(id, customFields);
+
+    if (outcome === 'sv_booked') await ghlAddTags(id, ['site-visit']);
+    if (outcome === 'lost')      await ghlAddTags(id, ['lost']);
+
+    toast(`✓ ${c?.name||'Contact'} saved`, 'success');
+    card.classList.add('done');
+    setTimeout(() => card.remove(), 320);
+  } catch(e) {
+    card.classList.remove('saving');
+    toast('Save failed: ' + e.message.substring(0,80), 'error');
+  }
+}
+
+/* ══════════════════════════════════════
+   TAB 3: SITE VISIT NOTES
+══════════════════════════════════════ */
+function renderTab3() {
+  const contacts = allContacts.filter(c =>
+    (hasTag(c,'site-visit') || cf(c,'sv_booked') === 'yes') &&
+    isBlank(cf(c,'closed_won')) &&
+    within7Days(cf(c,'sv_date'))
+  );
+
+  const panel = document.getElementById('panel-sitevisit');
+  if (!contacts.length) {
+    panel.innerHTML = `<div class="empty-state"><div class="empty-icon">🏥</div><div class="empty-title">No recent site visits need notes</div><div>Contacts with "site-visit" tag from last 7 days where outcome is missing will appear here.</div></div>`;
+    return;
+  }
+
+  panel.innerHTML = `
+    <div class="progress-bar">
+      <span class="prog-label">Site visits needing outcome</span>
+      <span class="prog-count">${contacts.length} remaining</span>
+    </div>
+    <div class="note-list">${contacts.map(c => buildSiteVisitCard(c)).join('')}</div>`;
+}
+
+function buildSiteVisitCard(c) {
+  const id = c.id;
+  const svDate = cf(c,'sv_date');
+  const phone = c.phone || '';
+  const today = new Date().toISOString().split('T')[0];
+  return `<div class="note-card" id="svcard-${id}">
+    <div class="note-header">
+      <div>
+        <div class="note-name">${h(contactName(c))}</div>
+        <div class="note-date">${h(phone)}</div>
+      </div>
+      <div class="note-date-badge">Site Visit: ${fmtDate(svDate)}</div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-label">Outcome</div>
+      <div class="radio-group">
+        <label class="radio-row"><input type="radio" name="sv-outcome-${id}" value="closed" onchange="toggleSVFields('${id}','closed')"> ✅ Closed Won</label>
+        <label class="radio-row"><input type="radio" name="sv-outcome-${id}" value="lost" onchange="toggleSVFields('${id}','lost')"> ❌ Lost</label>
+        <label class="radio-row"><input type="radio" name="sv-outcome-${id}" value="pending" onchange="toggleSVFields('${id}','pending')"> ⏳ Pending (follow up later)</label>
+      </div>
+    </div>
+
+    <div id="sv-closed-block-${id}" class="cond-block hidden">
+      <div class="form-section-label" style="margin-bottom:10px">Closed Won Details</div>
+      <div class="input-row" style="margin-bottom:10px">
+        <span class="input-label">Monthly Value:</span>
+        <input type="number" class="form-input-sm" id="sv-mv-${id}" placeholder="85">
+        <span class="input-label">JOD</span>
+      </div>
+      <div class="input-row" style="margin-bottom:10px">
+        <span class="input-label">Start Date:</span>
+        <input type="date" class="form-input-sm" id="sv-start-${id}" value="${today}">
+      </div>
+      <div>
+        <div class="form-section-label" style="margin-bottom:6px">Plan</div>
+        <div class="plan-btns">
+          <button class="sel-btn" onclick="pickPlan('${id}','35',this)">Standard (35 JOD)</button>
+          <button class="sel-btn" onclick="pickPlan('${id}','65',this)">Gold (65 JOD)</button>
+          <button class="sel-btn" onclick="pickPlan('${id}','85',this)">Premium (85 JOD)</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="sv-lost-block-${id}" class="cond-block hidden">
+      <div class="form-section-label" style="margin-bottom:8px">Lost Reason</div>
+      <div class="radio-group">
+        <label class="radio-row"><input type="radio" name="sv-lost-${id}" value="Price too high"> Price too high</label>
+        <label class="radio-row"><input type="radio" name="sv-lost-${id}" value="Not convinced"> Not convinced</label>
+        <label class="radio-row"><input type="radio" name="sv-lost-${id}" value="Chose competitor"> Chose competitor</label>
+        <label class="radio-row"><input type="radio" name="sv-lost-${id}" value="Bad timing"> Bad timing</label>
+        <label class="radio-row"><input type="radio" name="sv-lost-${id}" value="other">
+          Other: <input type="text" class="form-input-sm" id="sv-lost-other-${id}" placeholder="specify...">
+        </label>
+      </div>
+    </div>
+
+    <div id="sv-pending-block-${id}" class="cond-block hidden">
+      <div class="form-section-label" style="margin-bottom:8px">Follow-up Date</div>
+      <input type="date" class="form-input-sm" id="sv-followup-${id}">
+    </div>
+
+    <div class="form-section" style="margin-top:12px">
+      <div class="form-section-label">What content would have helped close this?</div>
+      <textarea class="form-textarea" id="sv-content-${id}" placeholder="e.g. ROI case study, testimonial from same specialty, pricing comparison..."></textarea>
+    </div>
+
+    <button class="save-btn" onclick="saveSiteVisit('${id}')">SAVE</button>
+  </div>`;
+}
+
+function toggleSVFields(id, outcome) {
+  ['closed','lost','pending'].forEach(o => {
+    document.getElementById(`sv-${o}-block-${id}`).classList.toggle('hidden', o !== outcome);
+  });
+}
+
+function pickPlan(id, val, btn) {
+  btn.closest('.plan-btns').querySelectorAll('.sel-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const mvEl = document.getElementById(`sv-mv-${id}`);
+  if (mvEl && !mvEl.value) mvEl.value = val;
+}
+
+async function saveSiteVisit(id) {
+  const c = allContacts.find(x => x.id === id);
+  const outcomeEl = document.querySelector(`input[name="sv-outcome-${id}"]:checked`);
+  if (!outcomeEl) { toast('Select an outcome', 'error'); return; }
+  const outcome = outcomeEl.value;
+  const card = document.getElementById(`svcard-${id}`);
+  card.classList.add('saving');
+
+  try {
+    const customFields = [];
+    const tagsToAdd = [], tagsToRemove = [];
+
+    if (outcome === 'closed') {
+      const mv = document.getElementById(`sv-mv-${id}`).value || '85';
+      customFields.push({ id: CFG.f.closed_won, value: 'yes' });
+      customFields.push({ id: CFG.f.monthly_value, value: mv });
+      tagsToAdd.push('client');
+      tagsToRemove.push('site-visit');
+    } else if (outcome === 'lost') {
+      const lostEl = document.querySelector(`input[name="sv-lost-${id}"]:checked`);
+      const lostOther = document.getElementById(`sv-lost-other-${id}`)?.value.trim();
+      const reason = lostEl ? (lostEl.value === 'other' ? (lostOther||'Other') : lostEl.value) : 'Not specified';
+      customFields.push({ id: CFG.f.lost_reason, value: reason });
+      tagsToAdd.push('lost');
+    } else if (outcome === 'pending') {
+      const fdate = document.getElementById(`sv-followup-${id}`)?.value;
+      if (fdate) tagsToAdd.push(`callback-scheduled-${fdate}`);
+    }
+
+    const contentNote = document.getElementById(`sv-content-${id}`)?.value.trim();
+    if (contentNote) customFields.push({ id: CFG.f.if_not_closed, value: contentNote });
+
+    if (customFields.length) await ghlUpdate(id, customFields);
+    if (tagsToAdd.length)    await ghlAddTags(id, tagsToAdd);
+    if (tagsToRemove.length) await ghlRemoveTags(id, tagsToRemove);
+
+    toast(`✓ ${c?.name||'Contact'} saved as ${outcome}`, 'success');
+    card.classList.add('done');
+    setTimeout(() => card.remove(), 320);
+  } catch(e) {
+    card.classList.remove('saving');
+    toast('Save failed: ' + e.message.substring(0,80), 'error');
+  }
+}
+
+/* ══════════════════════════════════════
+   TAB 4: CONTENT IDEAS
+══════════════════════════════════════ */
+const IDEAS_KEY = 'threeup_content_ideas';
+function getIdeas() {
+  try { return JSON.parse(localStorage.getItem(IDEAS_KEY)||'[]'); } catch(e) { return []; }
+}
+function saveIdeas(ideas) {
+  localStorage.setItem(IDEAS_KEY, JSON.stringify(ideas));
+}
+
+function renderTab4() {
+  const panel = document.getElementById('panel-content');
+  panel.innerHTML = `
+    <div class="content-form">
+      <div class="content-form-title">➕ Add New Content Idea</div>
+
+      <div class="form-group">
+        <label class="form-label">Topic / Title</label>
+        <input type="text" class="form-input" id="idea-topic" placeholder="e.g. Why clinics lose patients to cancellations">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">What objection does this address?</label>
+        <div class="radio-inline">
+          <label><input type="radio" name="idea-obj" value="Price"> Price</label>
+          <label><input type="radio" name="idea-obj" value="Trust"> Trust</label>
+          <label><input type="radio" name="idea-obj" value="Competitor"> Competitor</label>
+          <label><input type="radio" name="idea-obj" value="Timing"> Timing</label>
+          <label><input type="radio" name="idea-obj" value="Other"> Other</label>
+          <label><input type="radio" name="idea-obj" value="None" checked> None (awareness)</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Funnel Stage</label>
+        <div class="radio-inline">
+          <label><input type="radio" name="idea-stage" value="Awareness" checked> Awareness</label>
+          <label><input type="radio" name="idea-stage" value="Consideration"> Consideration</label>
+          <label><input type="radio" name="idea-stage" value="Decision"> Decision</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Format</label>
+        <div class="check-inline">
+          <label><input type="checkbox" name="idea-fmt" value="Blog Post"> Blog Post</label>
+          <label><input type="checkbox" name="idea-fmt" value="Social Post"> Social Post</label>
+          <label><input type="checkbox" name="idea-fmt" value="Video"> Video</label>
+          <label><input type="checkbox" name="idea-fmt" value="Case Study"> Case Study</label>
+          <label><input type="checkbox" name="idea-fmt" value="Landing Page"> Landing Page</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Priority</label>
+        <div class="radio-inline">
+          <label><input type="radio" name="idea-pri" value="High"> 🔴 High</label>
+          <label><input type="radio" name="idea-pri" value="Medium" checked> 🟡 Medium</label>
+          <label><input type="radio" name="idea-pri" value="Low"> 🟢 Low</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="idea-notes" placeholder="Angle, data to include, hook, target audience..."></textarea>
+      </div>
+
+      <button class="submit-btn" onclick="saveIdea()">Save to Queue</button>
+    </div>
+
+    <div class="ideas-table-wrap" id="ideas-table-wrap">
+      <div class="ideas-table-hdr">
+        <span class="ideas-table-title">Content Queue</span>
+        <span class="ideas-count" id="ideas-count"></span>
+      </div>
+      <table class="ideas-table">
+        <thead><tr>
+          <th>Topic</th><th>Objection</th><th>Stage</th><th>Format</th><th>Priority</th><th>Notes</th><th></th>
+        </tr></thead>
+        <tbody id="ideas-tbody"></tbody>
+      </table>
+    </div>`;
+  refreshIdeasTable();
+}
+
+function saveIdea() {
+  const topic = document.getElementById('idea-topic').value.trim();
+  if (!topic) { toast('Enter a topic', 'error'); return; }
+  const obj    = document.querySelector('input[name="idea-obj"]:checked')?.value || 'None';
+  const stage  = document.querySelector('input[name="idea-stage"]:checked')?.value || 'Awareness';
+  const formats = [...document.querySelectorAll('input[name="idea-fmt"]:checked')].map(e=>e.value);
+  const pri    = document.querySelector('input[name="idea-pri"]:checked')?.value || 'Medium';
+  const notes  = document.getElementById('idea-notes').value.trim();
+
+  const ideas = getIdeas();
+  ideas.unshift({ id: Date.now(), topic, objection: obj, stage, formats, priority: pri, notes, timestamp: new Date().toISOString() });
+  saveIdeas(ideas);
+
+  // Reset form
+  document.getElementById('idea-topic').value = '';
+  document.getElementById('idea-notes').value = '';
+  document.querySelectorAll('input[name="idea-fmt"]').forEach(e => { e.checked = false; });
+  document.querySelector('input[name="idea-obj"][value="None"]').checked = true;
+  document.querySelector('input[name="idea-stage"][value="Awareness"]').checked = true;
+  document.querySelector('input[name="idea-pri"][value="Medium"]').checked = true;
+
+  refreshIdeasTable();
+  toast('✓ Idea saved to queue', 'success');
+}
+
+function deleteIdea(id) {
+  const ideas = getIdeas().filter(x => x.id !== id);
+  saveIdeas(ideas);
+  refreshIdeasTable();
+}
+
+function refreshIdeasTable() {
+  const ideas = getIdeas();
+  const tbody = document.getElementById('ideas-tbody');
+  const count = document.getElementById('ideas-count');
+  if (!tbody) return;
+  count.textContent = `${ideas.length} idea${ideas.length!==1?'s':''}`;
+  if (!ideas.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No ideas yet. Add your first content idea above.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = ideas.map(idea => `<tr>
+    <td style="font-weight:600;max-width:200px">${h(idea.topic)}</td>
+    <td>${h(idea.objection)}</td>
+    <td>${h(idea.stage)}</td>
+    <td style="font-size:11px">${h((idea.formats||[]).join(', ')||'—')}</td>
+    <td><span class="pri-badge ${h(idea.priority)}">${h(idea.priority)}</span></td>
+    <td style="max-width:180px;font-size:11px;color:var(--g500)">${h((idea.notes||'').substring(0,80))}${(idea.notes||'').length>80?'…':''}</td>
+    <td><button class="del-btn" onclick="deleteIdea(${idea.id})">Delete</button></td>
+  </tr>`).join('');
+}
+
+/* ══════════════════════════════════════
+   TOAST
+══════════════════════════════════════ */
+function toast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-root').appendChild(el);
+  setTimeout(() => {
+    el.style.animation = 'fadeOut .25s forwards';
+    setTimeout(() => el.remove(), 260);
+  }, 3200);
+}
+
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+(function init() {
+  if (sessionStorage.getItem('de_auth') === '1') {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    loadData();
+  }
+})();
+</script>
+</body>
+</html>
