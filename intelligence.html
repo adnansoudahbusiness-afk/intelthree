@@ -382,14 +382,16 @@ const STAGE_RANK = {
   'meeting-done': 3, 'site-visit': 4, client: 5
 };
 
+const CLIENT_TAGS = ['client','closed-won','closed','active-client','active client'];
+
 function getStage(c) {
   const t = c.tags || [];
-  if (t.some(x => ['client','closed-won','closed'].includes(x)))                          return 'client';
+  if (t.some(x => CLIENT_TAGS.includes(x)))                                                    return 'client';
   if (t.some(x => ['site-visit-done','site-visit','sv-done','site-visit-booked'].includes(x))) return 'site-visit';
-  if (t.some(x => ['meeting-done','discovery-done','disc-done'].includes(x)))             return 'meeting-done';
-  if (t.some(x => ['meeting-booked','discovery-booked','disc-booked'].includes(x)))       return 'meeting-booked';
-  if (t.includes('contacted'))                                                             return 'contacted';
-  if (t.some(x => ['lost','churned','dead'].includes(x)))                                 return 'lost';
+  if (t.some(x => ['meeting-done','discovery-done','disc-done'].includes(x)))                  return 'meeting-done';
+  if (t.some(x => ['meeting-booked','discovery-booked','disc-booked'].includes(x)))            return 'meeting-booked';
+  if (t.includes('contacted'))                                                                  return 'contacted';
+  if (t.some(x => ['lost','churned','dead'].includes(x)))                                      return 'lost';
   return 'new-lead';
 }
 
@@ -401,6 +403,7 @@ function analyzePipeline(contacts) {
   const total  = active.length;
 
   let contacted = 0, meetingBooked = 0, meetingDone = 0, siteVisit = 0, client = 0, lost = 0;
+  const clientTagCounts = {};
 
   for (const c of active) {
     const stage = getStage(c);
@@ -409,14 +412,23 @@ function analyzePipeline(contacts) {
     if (rank >= 2) meetingBooked++;
     if (rank >= 3) meetingDone++;
     if (rank >= 4) siteVisit++;
-    if (rank >= 5) client++;
+    if (rank >= 5) {
+      client++;
+      for (const tag of (c.tags || [])) {
+        if (CLIENT_TAGS.includes(tag)) clientTagCounts[tag] = (clientTagCounts[tag] || 0) + 1;
+      }
+    }
     if (stage === 'lost') lost++;
   }
+
+  const clientTagBreakdown = Object.entries(clientTagCounts).length
+    ? Object.entries(clientTagCounts).map(([t, n]) => `"${t}": ${n}`).join(' · ')
+    : 'no matching client tags found';
 
   const avgDeal = calcAvgDeal(active);
 
   return {
-    total, contacted, meetingBooked, meetingDone, siteVisit, client, lost, avgDeal,
+    total, contacted, meetingBooked, meetingDone, siteVisit, client, lost, avgDeal, clientTagBreakdown,
     rates: {
       toContacted:      pct(contacted, total),
       toMeetingBooked:  pct(meetingBooked, contacted),
@@ -726,6 +738,36 @@ async function runAnalysis() {
     const contacts   = await fetchAllContacts();
     setLoad(`Analyzing ${contacts.length} contacts...`);
 
+    // ── CLIENT COUNT DEBUG ──────────────────────────────────
+    console.log('[DEBUG] Total contacts fetched:', contacts.length);
+
+    const clientsByTag = {};
+    for (const c of contacts) {
+      for (const tag of (c.tags || [])) {
+        if (CLIENT_TAGS.includes(tag) || tag.toLowerCase().includes('client') || tag.toLowerCase().includes('closed')) {
+          clientsByTag[tag] = (clientsByTag[tag] || 0) + 1;
+        }
+      }
+    }
+    console.log('[DEBUG] Contacts with client-related tags:', clientsByTag);
+
+    const stageMap = {};
+    for (const c of contacts) {
+      const s = getStage(c);
+      stageMap[s] = (stageMap[s] || 0) + 1;
+    }
+    console.log('[DEBUG] Stage distribution:', stageMap);
+
+    // Sample: first 5 contacts tagged client — show all their tags
+    const clientSamples = contacts.filter(c => getStage(c) === 'client').slice(0, 5);
+    console.log('[DEBUG] Sample client contacts (tags):', clientSamples.map(c => ({ name: c.contactName || c.firstName, tags: c.tags })));
+
+    // All unique tags in dataset (to spot unexpected client tag names)
+    const allTags = new Set();
+    contacts.forEach(c => (c.tags || []).forEach(t => allTags.add(t)));
+    console.log('[DEBUG] All unique tags in GHL:', [...allTags].sort());
+    // ───────────────────────────────────────────────────────
+
     const pipeline   = analyzePipeline(contacts);
     const segments   = analyzeSegments(contacts);
     const objections = analyzeObjections(contacts);
@@ -781,7 +823,7 @@ function renderCEOBrief() {
       <div class="stat-card">
         <div class="stat-label">Active Clients</div>
         <div class="stat-val green">${pipeline.client}</div>
-        <div class="stat-sub">tagged "client"</div>
+        <div class="stat-sub">${pipeline.clientTagBreakdown}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Lost Deals</div>
