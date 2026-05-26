@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThreeUp — Intelligence OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D1117;
+  --bg-card:#161B22;
+  --bg-card2:#1C2128;
+  --border:#30363D;
+  --text:#E6EDF3;
+  --muted:#8B949E;
+  --purple:#A396DC;
+  --purple-dark:#8A7BC8;
+  --purple-dim:#2D2640;
+  --red:#F85149;
+  --red-bg:#2D1010;
+  --red-border:#6B2120;
+  --amber:#E3B341;
+  --amber-bg:#2D1F0A;
+  --amber-border:#6B4F10;
+  --green:#3FB950;
+  --green-bg:#0A2010;
+  --green-border:#1B5E2A;
+  --blue:#58A6FF;
+  --blue-bg:#0D1F3A;
+  --blue-border:#1A3A6A;
+  --font:'Syne',sans-serif;
+  --mono:'DM Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.5}
+.hidden{display:none!important}
+
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 0%,#1A1530 0%,var(--bg) 70%)}
+.login-box{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:44px 40px;width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.login-logo{width:56px;height:56px;background:var(--purple);border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;margin:0 auto 20px}
+.login-title{font-size:24px;font-weight:800;margin-bottom:6px}
+.login-sub{font-size:14px;color:var(--muted);margin-bottom:28px}
+.login-input{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:15px;outline:none;transition:border-color .15s;background:var(--bg);color:var(--text);margin-bottom:12px;text-align:center;letter-spacing:3px}
+.login-input:focus{border-color:var(--purple)}
+.login-btn{width:100%;padding:13px;background:var(--purple);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;transition:background .15s}
+.login-btn:hover{background:var(--purple-dark)}
+.login-err{color:var(--red);font-size:13px;margin-top:10px;min-height:18px;font-family:var(--mono)}
+
+/* APP SHELL */
+#app{display:flex;flex-direction:column;min-height:100vh}
+#topbar{background:var(--bg-card);border-bottom:1px solid var(--border);height:58px;display:flex;align-items:center;padding:0 22px;gap:14px;position:sticky;top:0;z-index:100}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.brand-logo{width:32px;height:32px;background:var(--purple);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px}
+.brand-name{font-weight:700;font-size:15px}
+.brand-sub{font-size:9px;color:var(--purple);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-family:var(--mono)}
+.tb-spacer{flex:1}
+#last-updated{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.tb-btn{padding:8px 14px;border-radius:8px;border:1.5px solid var(--border);background:transparent;font-family:var(--font);font-size:13px;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap}
+.tb-btn:hover{border-color:var(--purple);color:var(--purple)}
+.tb-btn.primary{background:var(--purple);border-color:var(--purple);color:#fff}
+.tb-btn.primary:hover{background:var(--purple-dark)}
+.tb-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* TAB NAV */
+#tab-nav{background:var(--bg-card);border-bottom:1px solid var(--border);display:flex;padding:0 22px;gap:2px}
+.tab-btn{padding:12px 18px;border:none;background:transparent;font-family:var(--font);font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--purple);border-bottom-color:var(--purple)}
+
+/* LOADING */
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px;gap:16px}
+.spin{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#load-msg{font-size:18px;font-weight:700;color:var(--text)}
+#load-detail{font-size:13px;color:var(--muted);font-family:var(--mono)}
+.retry-btn{margin-top:8px;padding:9px 20px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer}
+
+/* TAB PANELS */
+.tab-panel{padding:22px 24px;max-width:1200px;margin:0 auto;width:100%}
+
+/* SECTION TITLES */
+.sec-title{font-size:18px;font-weight:800;color:var(--text);padding:16px 0 12px;border-bottom:1px solid var(--border);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+
+/* SIGNAL GROUPS */
+.signal-group{margin-bottom:28px}
+.signal-group-title{font-size:16px;font-weight:800;letter-spacing:.04em;padding:12px 16px;border-radius:10px 10px 0 0;margin-bottom:2px}
+.signal-group-title.type-critical{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);border-bottom:none}
+.signal-group-title.type-high{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);border-bottom:none}
+.signal-group-title.type-opportunity{background:var(--purple-dim);color:var(--purple);border:1px solid #4A3A80;border-bottom:none}
+
+.signal-card{display:flex;gap:16px;padding:18px 20px;border:1px solid;border-top:none;background:var(--bg-card)}
+.signal-card:last-child{border-radius:0 0 10px 10px}
+.signal-card.type-critical{border-color:var(--red-border);background:var(--red-bg)}
+.signal-card.type-high{border-color:var(--amber-border);background:var(--amber-bg)}
+.signal-card.type-opportunity{border-color:#4A3A80;background:var(--purple-dim)}
+
+.signal-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;margin-top:2px}
+.type-critical .signal-num{background:var(--red);color:#fff}
+.type-high .signal-num{background:var(--amber);color:#000}
+.type-opportunity .signal-num{background:var(--purple);color:#fff}
+
+.signal-body{flex:1;min-width:0}
+.signal-title{font-size:16px;font-weight:800;margin-bottom:12px;line-height:1.3}
+.type-critical .signal-title{color:var(--red)}
+.type-high .signal-title{color:var(--amber)}
+.type-opportunity .signal-title{color:var(--purple)}
+
+.signal-row{display:flex;gap:10px;margin-bottom:7px;font-size:14px;line-height:1.5}
+.signal-label{font-weight:700;color:var(--muted);white-space:nowrap;min-width:80px;font-family:var(--mono);font-size:12px;padding-top:2px}
+.signal-empty{padding:18px 20px;border:1px solid var(--border);border-radius:0 0 10px 10px;color:var(--muted);font-size:14px;background:var(--bg-card)}
+
+/* METRICS SECTION */
+.metrics-section{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.metric-block-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mono);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.metric-row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid #1C2128;font-size:14px}
+.metric-row:last-child{border-bottom:none}
+.metric-label{color:var(--muted)}
+.metric-val{font-weight:700;font-family:var(--mono);text-align:right}
+.metric-val.green{color:var(--green)}
+.metric-val.red{color:var(--red)}
+.metric-val.amber{color:var(--amber)}
+.metric-val.blue{color:var(--blue)}
+.metric-val.purple{color:var(--purple)}
+
+/* CONTENT SUGGESTIONS */
+.content-section{margin-bottom:20px}
+.content-card{border:1px solid;border-radius:10px;padding:16px 18px;margin-bottom:10px;background:var(--bg-card)}
+.content-card.type-critical{border-color:var(--red-border);background:var(--red-bg)}
+.content-card.type-high{border-color:var(--amber-border);background:var(--amber-bg)}
+.content-card.type-opportunity{border-color:#4A3A80;background:var(--purple-dim)}
+.content-priority{font-size:16px;font-weight:800;margin-bottom:12px;line-height:1.3}
+.type-critical .content-priority{color:var(--red)}
+.type-high .content-priority{color:var(--amber)}
+.type-opportunity .content-priority{color:var(--purple)}
+.content-row{display:flex;gap:10px;margin-bottom:6px;font-size:14px}
+.content-label{font-weight:700;color:var(--muted);white-space:nowrap;min-width:60px;font-family:var(--mono);font-size:12px;padding-top:2px}
+
+/* FUNNEL */
+.pipeline-section{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.funnel{display:flex;flex-direction:column;gap:10px}
+.funnel-stage{display:flex;align-items:center;gap:14px}
+.funnel-label{display:flex;flex-direction:column;width:200px;flex-shrink:0}
+.funnel-name{font-size:14px;font-weight:700}
+.funnel-rate{font-size:12px;font-family:var(--mono)}
+.funnel-rate.green{color:var(--green)}
+.funnel-rate.amber{color:var(--amber)}
+.funnel-rate.red{color:var(--red)}
+.funnel-rate.blue{color:var(--blue)}
+.funnel-bar-wrap{flex:1;display:flex;align-items:center;gap:10px}
+.funnel-bar{height:28px;border-radius:6px;min-width:4px;transition:width .4s}
+.funnel-bar.green{background:var(--green)}
+.funnel-bar.amber{background:var(--amber)}
+.funnel-bar.red{background:var(--red)}
+.funnel-bar.blue{background:var(--blue)}
+.funnel-count{font-size:15px;font-weight:800;font-family:var(--mono);white-space:nowrap;min-width:40px}
+.funnel-lost{display:flex;justify-content:flex-end;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:14px}
+
+/* SEGMENT TABLES */
+.segment-section{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.objection-section{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.seg-title{font-size:15px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-family:var(--mono);margin:16px 0 10px}
+.seg-title:first-child{margin-top:0}
+.seg-meta{font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:10px}
+.seg-table{width:100%;border-collapse:collapse;font-size:13px;font-family:var(--mono)}
+.seg-table th{text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.seg-table td{padding:9px 10px;border-bottom:1px solid #1C2128;vertical-align:middle}
+.seg-table tr:last-child td{border-bottom:none}
+.seg-table td.green{color:var(--green);font-weight:700}
+.seg-table td.red{color:var(--red)}
+.seg-table td.amber{color:var(--amber)}
+
+/* MARKET INTEL */
+.intel-section{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.intel-card{padding:14px 16px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;background:var(--bg-card2)}
+.intel-card:last-child{margin-bottom:0}
+.intel-card.threat{border-left:3px solid var(--red)}
+.intel-card.observation{border-left:3px solid var(--blue)}
+.intel-card.opportunity{border-left:3px solid var(--green)}
+.intel-header{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.intel-tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;font-family:var(--mono)}
+.intel-tag.red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.intel-tag.amber{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.intel-tag.purple{background:var(--purple-dim);color:var(--purple);border:1px solid #4A3A80}
+.intel-tag.blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.intel-tag.gray{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+.intel-date{font-size:12px;color:var(--muted);font-family:var(--mono);margin-left:auto}
+.intel-text{font-size:14px;color:var(--text);line-height:1.6;margin-bottom:6px}
+.intel-impact{font-size:13px;color:var(--purple);font-style:italic}
+.empty-state{padding:24px;text-align:center;color:var(--muted);font-size:14px;border:1px dashed var(--border);border-radius:8px;line-height:1.6}
+
+/* STAT STRIP */
+.stat-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.stat-label{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono);margin-bottom:6px}
+.stat-val{font-size:26px;font-weight:800;line-height:1}
+.stat-val.purple{color:var(--purple)}
+.stat-val.green{color:var(--green)}
+.stat-val.red{color:var(--red)}
+.stat-val.amber{color:var(--amber)}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--mono)}
+
+/* BRIEF HEADER */
+.brief-header{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin-bottom:20px}
+.brief-week{font-size:13px;color:var(--muted);font-family:var(--mono);margin-bottom:4px}
+.brief-title{font-size:22px;font-weight:800;letter-spacing:.02em}
+
+/* TOAST */
+#toast-wrap{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--bg-card2);border:1px solid var(--border);color:var(--text);padding:11px 16px;border-radius:10px;font-size:13px;font-family:var(--mono);box-shadow:0 4px 20px rgba(0,0,0,.4);animation:fadeUp .2s ease;max-width:340px}
+.toast.success{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.toast.error{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+.toast.warning{background:var(--amber-bg);border-color:var(--amber-border);color:var(--amber)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:800px){
+  .metrics-grid{grid-template-columns:1fr}
+  .stat-strip{grid-template-columns:repeat(2,1fr)}
+  .funnel-label{width:130px}
+  .tab-btn{padding:10px 12px;font-size:13px}
+}
+@media(max-width:500px){
+  .stat-strip{grid-template-columns:repeat(2,1fr)}
+  .tab-panel{padding:16px 14px}
+  #topbar{padding:0 14px}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">3UP</div>
+    <div class="login-title">Intelligence OS</div>
+    <div class="login-sub">Strategic Intelligence Engine · ThreeUp</div>
+    <input type="password" id="login-pw" class="login-input" placeholder="••••••••" autocomplete="current-password">
+    <div class="login-err" id="login-err"></div>
+    <button class="login-btn" onclick="doLogin()">Enter</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <div id="topbar">
+    <div class="brand">
+      <div class="brand-logo">3UP</div>
+      <div>
+        <div class="brand-name">ThreeUp</div>
+        <div class="brand-sub">Intelligence OS</div>
+      </div>
+    </div>
+    <div class="tb-spacer"></div>
+    <div id="last-updated"></div>
+    <button class="tb-btn primary" onclick="runAnalysis()" id="refresh-btn">🔄 Refresh Analysis</button>
+    <button class="tb-btn" onclick="doLogout()">Logout</button>
+  </div>
+
+  <div id="tab-nav">
+    <button class="tab-btn active" data-tab="brief"    onclick="switchTab('brief')">📋 CEO Brief</button>
+    <button class="tab-btn"        data-tab="pipeline" onclick="switchTab('pipeline')">📊 Pipeline</button>
+    <button class="tab-btn"        data-tab="market"   onclick="switchTab('market')">🌍 Market Intel</button>
+  </div>
+
+  <div id="loading">
+    <div class="spin"></div>
+    <div id="load-msg">Connecting to GHL...</div>
+    <div id="load-detail"></div>
+  </div>
+
+  <div id="tab-brief"    class="tab-panel hidden"></div>
+  <div id="tab-pipeline" class="tab-panel hidden"></div>
+  <div id="tab-market"   class="tab-panel hidden"></div>
+</div>
+
+<div id="toast-wrap"></div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════
+   CONFIG
+═══════════════════════════════ */
+const CFG = {
+  key:  'pit-5fe4c7a5-aa93-4b13-a034-4ac42ffba273',
+  loc:  'ck8gYVHUEnLEIg0OVsLd',
+  base: 'https://services.leadconnectorhq.com',
+  pw:   'intelligence3up2026',
+  f: {
+    specialty:  'S4UO0tXC5s38qpsET42Z',
+    city:       'rUxALKB5pbMjKMSqePCp',
+    source:     'cqMoQkgXs97QE93t3kWj',
+    lost_why:   '3IY7xFbYOjscqPMyBpZ6',
+    lost_reason:'1Gq0IaHtZqOJkDKlpR11',
+    monthly_val:'fiJc1wo9y6BYsXvJ4L5c'
+  },
+  DEFAULT_DEAL: 500  // JOD/month fallback
+};
+
+const HDRS = {
+  'Authorization': `Bearer ${CFG.key}`,
+  'Version':       '2021-07-28',
+  'Content-Type':  'application/json'
+};
+
+let analysisData = null;
+let activeTab    = 'brief';
+
+/* ═══════════════════════════════
+   AUTH
+═══════════════════════════════ */
+document.getElementById('login-pw').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+function doLogin() {
+  const pw = document.getElementById('login-pw').value.trim();
+  if (pw === CFG.pw) {
+    sessionStorage.setItem('intel_auth', '1');
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    runAnalysis();
+  } else {
+    document.getElementById('login-err').textContent = 'Incorrect password.';
+    document.getElementById('login-pw').value = '';
+    document.getElementById('login-pw').focus();
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('intel_auth');
+  location.reload();
+}
+
+/* ═══════════════════════════════
+   GHL FETCH (paginated)
+═══════════════════════════════ */
+async function fetchAllContacts() {
+  const all = [];
+  let page = 1;
+
+  while (true) {
+    setLoad(`Fetching contacts... ${all.length} loaded`);
+    const res = await fetch(
+      `${CFG.base}/contacts/?locationId=${CFG.loc}&limit=100&page=${page}`,
+      { headers: HDRS }
+    );
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error(`GHL ${res.status}: ${txt.slice(0, 120)}`);
+    }
+    const data = await res.json();
+    const batch = data.contacts || [];
+    all.push(...batch);
+    if (batch.length < 100) break;
+    page++;
+  }
+
+  return all;
+}
+
+/* ═══════════════════════════════
+   FIELD + TAG HELPERS
+═══════════════════════════════ */
+function cf(c, fname) {
+  const id  = CFG.f[fname];
+  const arr = c.customFields || c.customField || [];
+  const hit = arr.find(f => f.id === id || f.key === fname);
+  return hit ? String(hit.value || hit.fieldValue || '').trim() : '';
+}
+
+function hasTag(c, tag)  { return Array.isArray(c.tags) && c.tags.includes(tag); }
+function hasAnyTag(c, t) { return Array.isArray(c.tags) && t.some(x => c.tags.includes(x)); }
+function isBlank(v)      { return !v || !String(v).trim(); }
+
+/* ═══════════════════════════════
+   STAGE DETECTION
+═══════════════════════════════ */
+const STAGE_RANK = {
+  'new-lead': 0, contacted: 1, 'meeting-booked': 2,
+  'meeting-done': 3, 'site-visit': 4, client: 5
+};
+
+function getStage(c) {
+  const t = c.tags || [];
+  if (t.some(x => ['client','closed-won','closed'].includes(x)))                          return 'client';
+  if (t.some(x => ['site-visit-done','site-visit','sv-done','site-visit-booked'].includes(x))) return 'site-visit';
+  if (t.some(x => ['meeting-done','discovery-done','disc-done'].includes(x)))             return 'meeting-done';
+  if (t.some(x => ['meeting-booked','discovery-booked','disc-booked'].includes(x)))       return 'meeting-booked';
+  if (t.includes('contacted'))                                                             return 'contacted';
+  if (t.some(x => ['lost','churned','dead'].includes(x)))                                 return 'lost';
+  return 'new-lead';
+}
+
+/* ═══════════════════════════════
+   PIPELINE ANALYSIS
+═══════════════════════════════ */
+function analyzePipeline(contacts) {
+  const active = contacts.filter(c => !hasAnyTag(c, ['archived','duplicate']));
+  const total  = active.length;
+
+  let contacted = 0, meetingBooked = 0, meetingDone = 0, siteVisit = 0, client = 0, lost = 0;
+
+  for (const c of active) {
+    const stage = getStage(c);
+    const rank  = STAGE_RANK[stage] ?? 0;
+    if (rank >= 1) contacted++;
+    if (rank >= 2) meetingBooked++;
+    if (rank >= 3) meetingDone++;
+    if (rank >= 4) siteVisit++;
+    if (rank >= 5) client++;
+    if (stage === 'lost') lost++;
+  }
+
+  const avgDeal = calcAvgDeal(active);
+
+  return {
+    total, contacted, meetingBooked, meetingDone, siteVisit, client, lost, avgDeal,
+    rates: {
+      toContacted:      pct(contacted, total),
+      toMeetingBooked:  pct(meetingBooked, contacted),
+      toMeetingDone:    pct(meetingDone, meetingBooked),
+      toSiteVisit:      pct(siteVisit, meetingDone),
+      toClient:         pct(client, siteVisit),
+      overall:          pct(client, total),
+      decisionRate:     pct(client, client + lost)
+    }
+  };
+}
+
+function calcAvgDeal(contacts) {
+  const vals = contacts.map(c => parseFloat(cf(c,'monthly_val')) || 0).filter(v => v > 0);
+  if (!vals.length) return CFG.DEFAULT_DEAL;
+  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+}
+
+/* ═══════════════════════════════
+   SEGMENT ANALYSIS
+═══════════════════════════════ */
+function analyzeSegments(contacts) {
+  const dims = ['source', 'specialty', 'city'];
+  const out  = {};
+
+  for (const dim of dims) {
+    const groups = {};
+    for (const c of contacts) {
+      if (hasAnyTag(c, ['archived','duplicate'])) continue;
+      const key   = cf(c, dim) || 'Unknown';
+      const stage = getStage(c);
+      if (!groups[key]) groups[key] = { label: key, total: 0, contacted: 0, client: 0, lost: 0 };
+      groups[key].total++;
+      if ((STAGE_RANK[stage] ?? 0) >= 1) groups[key].contacted++;
+      if (stage === 'client') groups[key].client++;
+      if (stage === 'lost')   groups[key].lost++;
+    }
+
+    out[dim] = Object.values(groups)
+      .filter(g => g.total >= 3)
+      .map(g => ({
+        ...g,
+        closeRate:   pct(g.client, g.client + g.lost),
+        contactRate: pct(g.contacted, g.total)
+      }))
+      .sort((a, b) => b.client - a.client);
+  }
+
+  return out;
+}
+
+/* ═══════════════════════════════
+   OBJECTION ANALYSIS
+═══════════════════════════════ */
+const OBJ_CATS = [
+  { key:'price',      label:'Price / Cost',       terms:['price','expensive','cost','budget','afford','cheap','مكلف','تكلفة','سعر','غالي'] },
+  { key:'competitor', label:'Has Competitor',      terms:['competitor','already use','current system','existing','نظام','يستخدمون'] },
+  { key:'timing',     label:'Not Ready / Timing',  terms:['not ready','later','busy','time','wait','وقت','لاحقاً','مشغول','بعدين'] },
+  { key:'trust',      label:'Trust / Credibility', terms:['new','prove','trust','unknown','risk','جديد','ثقة','نجرب'] },
+  { key:'features',   label:'Missing Features',    terms:['feature','missing','need','require','خاصية','ميزة','محتاجين'] },
+  { key:'value',      label:'Unclear ROI / Value', terms:['value','roi','benefit','worth','فايدة','يستاهل','نتيجة'] },
+];
+
+function analyzeObjections(contacts) {
+  const cats = OBJ_CATS.map(c => ({ ...c, count: 0, lostWithObj: 0 }));
+  let totalWithNotes = 0;
+
+  for (const c of contacts) {
+    if (hasAnyTag(c, ['archived','duplicate'])) continue;
+    const text = [cf(c,'lost_why'), cf(c,'lost_reason')].join(' ').toLowerCase();
+    if (!text.trim()) continue;
+    totalWithNotes++;
+    const stage = getStage(c);
+    for (const cat of cats) {
+      if (cat.terms.some(t => text.includes(t.toLowerCase()))) {
+        cat.count++;
+        if (stage === 'lost') cat.lostWithObj++;
+      }
+    }
+  }
+
+  return {
+    byCategory:     cats.filter(c => c.count > 0).sort((a, b) => b.count - a.count),
+    totalWithNotes
+  };
+}
+
+/* ═══════════════════════════════
+   HUB INTEL (localStorage)
+═══════════════════════════════ */
+function readHubIntel() {
+  const load = key => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } };
+
+  let competitor = load('hub_competitor_intel');
+  let market     = load('hub_market_intel');
+  let content    = load('hub_content_perf');
+
+  // Fallback: threeup_intel legacy key
+  if (!competitor.length && !market.length) {
+    const leg = (() => { try { return JSON.parse(localStorage.getItem('threeup_intel') || '{}'); } catch { return {}; } })();
+    if (Array.isArray(leg.competitor)) competitor = leg.competitor;
+    if (Array.isArray(leg.market))     market     = leg.market;
+    if (Array.isArray(leg.content))    content    = leg.content;
+  }
+
+  return { competitor, market, content };
+}
+
+/* ═══════════════════════════════
+   SIGNAL DETECTION
+═══════════════════════════════ */
+function generateSignals(pipeline, segments, objections) {
+  const critical    = [];
+  const high        = [];
+  const opportunity = [];
+  const avg         = pipeline.avgDeal;
+
+  // ── Pipeline conversion signals ──
+  const funnelStages = [
+    { label:'Lead → Contacted',          from: pipeline.total,        to: pipeline.contacted,    rate: pipeline.rates.toContacted },
+    { label:'Contacted → Discovery',     from: pipeline.contacted,    to: pipeline.meetingBooked,rate: pipeline.rates.toMeetingBooked },
+    { label:'Discovery Booked → Done',   from: pipeline.meetingBooked,to: pipeline.meetingDone,  rate: pipeline.rates.toMeetingDone },
+    { label:'Discovery → Site Visit',    from: pipeline.meetingDone,  to: pipeline.siteVisit,    rate: pipeline.rates.toSiteVisit },
+    { label:'Site Visit → Client',       from: pipeline.siteVisit,    to: pipeline.client,       rate: pipeline.rates.toClient },
+  ];
+
+  for (const s of funnelStages) {
+    if (s.from < 3) continue;
+    const leaked     = s.from - s.to;
+    const lostRev    = leaked * avg;
+    const confidence = calcConfidence(s.from);
+
+    if (s.rate < 40) {
+      critical.push({
+        title:      `${s.label.toUpperCase()} — CRITICAL PIPELINE LEAK`,
+        evidence:   `${s.rate}% conversion — only ${s.to} of ${s.from} contacts reach this stage`,
+        impact:     `${leaked} deals stalled here → ~${fmtJOD(lostRev)} JOD/month revenue at risk`,
+        action:     `Audit what blocks ${s.label}. Review call scripts, follow-up timing, and objections at this exact stage.`,
+        confidence
+      });
+    } else if (s.rate < 60) {
+      high.push({
+        title:      `${s.label.toUpperCase()} — BELOW TARGET`,
+        evidence:   `${s.rate}% conversion (${s.to}/${s.from}) — target is 60%+`,
+        impact:     `Raising to 60% = ${Math.round(s.from * 0.2)} additional conversions at ~${fmtJOD(Math.round(s.from * 0.2) * avg)} JOD`,
+        action:     `Investigate friction at ${s.label}. Review last 10 stalled contacts at this stage.`,
+        confidence
+      });
+    }
+  }
+
+  // ── Objection signals ──
+  if (objections.totalWithNotes >= 3) {
+    const top = objections.byCategory[0];
+    if (top) {
+      const pctOfNotes = pct(top.count, objections.totalWithNotes);
+      const impactJOD  = top.lostWithObj * avg;
+      const conf       = calcConfidence(objections.totalWithNotes);
+
+      if (pctOfNotes >= 30) {
+        critical.push({
+          title:    `"${top.label.toUpperCase()}" — TOP OBJECTION KILLING DEALS`,
+          evidence: `Mentioned in ${top.count} of ${objections.totalWithNotes} deals with notes (${pctOfNotes}%)`,
+          impact:   `${top.lostWithObj} confirmed lost deals → ~${fmtJOD(impactJOD)} JOD/month revenue lost to this objection`,
+          action:   `Build a direct rebuttal. Create content addressing ${top.label.toLowerCase()}. Train setter on handling it proactively.`,
+          confidence: conf
+        });
+      } else if (pctOfNotes >= 15) {
+        high.push({
+          title:    `"${top.label.toUpperCase()}" — SIGNIFICANT OBJECTION`,
+          evidence: `Mentioned in ${top.count} of ${objections.totalWithNotes} deals with notes (${pctOfNotes}%)`,
+          impact:   `${top.lostWithObj} confirmed lost deals attributed to this`,
+          action:   `Prepare sharper rebuttal. Address ${top.label.toLowerCase()} proactively during discovery.`,
+          confidence: conf
+        });
+      }
+    }
+  }
+
+  // ── Segment opportunity signals ──
+  const allRates  = Object.values(segments).flatMap(dim =>
+    dim.filter(g => g.total >= 5 && g.client + g.lost > 0).map(g => g.closeRate)
+  );
+  const avgRate   = allRates.length ? Math.round(allRates.reduce((a,b) => a+b,0) / allRates.length) : 0;
+
+  for (const [dim, groups] of Object.entries(segments)) {
+    const dimLabel = { source:'Source', specialty:'Specialty', city:'City' }[dim] || dim;
+    const sorted   = groups.filter(g => g.total >= 5 && g.client + g.lost > 0).sort((a,b) => b.closeRate - a.closeRate);
+    const top      = sorted[0];
+    if (top && top.closeRate > avgRate * 1.8 && top.closeRate > 15) {
+      opportunity.push({
+        title:    `${dimLabel.toUpperCase()}: ${top.label.toUpperCase()} — HIGH-CONVERTING SEGMENT`,
+        evidence: `${top.closeRate}% close rate (${top.client} clients / ${top.client + top.lost} decisions) — ${Math.round(top.closeRate / Math.max(avgRate,1))}x the average`,
+        impact:   `Each additional lead in this segment converts at ${top.closeRate}% — far above average of ${avgRate}%`,
+        action:   `Double outreach in ${top.label} ${dimLabel.toLowerCase()}. Prioritise these leads. Create targeted content.`,
+        confidence: calcConfidence(top.total)
+      });
+    }
+  }
+
+  // ── Untapped segments: high volume, low contact rate ──
+  for (const [dim, groups] of Object.entries(segments)) {
+    const dimLabel = { source:'Source', specialty:'Specialty', city:'City' }[dim] || dim;
+    const untapped = groups.filter(g => g.total >= 10 && g.contactRate < 20);
+    for (const g of untapped.slice(0,1)) {
+      high.push({
+        title:    `${dimLabel.toUpperCase()}: ${g.label.toUpperCase()} — LARGE UNTAPPED SEGMENT`,
+        evidence: `${g.total} leads but only ${g.contactRate}% have been contacted (${g.contacted} contacts)`,
+        impact:   `${g.total - g.contacted} leads never reached — even at ${avgRate}% close rate = ${Math.round((g.total - g.contacted) * avgRate / 100)} potential clients`,
+        action:   `Assign setter to work through ${g.label} backlog. Prioritise any leads < 14 days old.`,
+        confidence: calcConfidence(g.total)
+      });
+    }
+  }
+
+  return { critical, high, opportunity };
+}
+
+/* ═══════════════════════════════
+   CONTENT SUGGESTIONS
+═══════════════════════════════ */
+function generateContentSuggestions(objections, segments, hubIntel) {
+  const suggestions = [];
+
+  // 1. From top objection
+  const topObj = objections.byCategory[0];
+  const contentMap = {
+    price:      { title:'ROI Calculator: What 5 No-Shows Cost Your Clinic Monthly', format:'Carousel', angle:'Frame the cost of NOT having a system. 5 no-shows = lost revenue > ThreeUp cost. Make the math undeniable.' },
+    competitor: { title:'ThreeUp vs [Competitor]: Honest Side-by-Side Breakdown',   format:'Carousel', angle:'Address it head-on. Don\'t trash competitors. Highlight unique strengths and real client results they can\'t match.' },
+    timing:     { title:'What Clinics Who Waited 6 Months Regret (Real Stories)',    format:'Video',    angle:'Show the real cost of delay — patients lost to competitors, revenue left behind, team stress of manual work.' },
+    trust:      { title:'30-Day Setup: What Your Clinic Looks Like on Day 1 vs Day 30', format:'Video', angle:'Pull back the curtain. Show onboarding process, first results, real client face and real numbers.' },
+    features:   { title:'Feature Deep Dive: [Most Requested Feature]',              format:'Demo Video',angle:'Directly address the specific gap. Show workaround, upcoming roadmap, or why it\'s not needed.' },
+    value:      { title:'Month 1 to Month 6: A Dental Clinic\'s Full Results Timeline', format:'Case Study', angle:'Real numbers. Patient volume, revenue increase, no-shows reduced. Specific to one specialty.' }
+  };
+
+  if (topObj && topObj.count >= 2) {
+    const map = contentMap[topObj.key];
+    if (map) {
+      suggestions.push({
+        priority: 'critical',
+        topic:    map.title,
+        data:     `#1 objection: "${topObj.label}" appears in ${topObj.count}/${objections.totalWithNotes} deal notes (${pct(topObj.count, objections.totalWithNotes)}%). ${topObj.lostWithObj} confirmed lost deals.`,
+        angle:    map.angle,
+        format:   map.format,
+        impact:   `Directly targets the #1 deal killer. Converting even 2-3 stalled deals pays for weeks of content.`
+      });
+    }
+  }
+
+  // 2. From top performing segment
+  for (const [dim, groups] of Object.entries(segments)) {
+    const top = groups.filter(g => g.total >= 5 && g.client > 0).sort((a,b) => b.closeRate - a.closeRate)[0];
+    if (top) {
+      suggestions.push({
+        priority: 'high',
+        topic:    `${top.label} Success Story — Real Results, Real Numbers`,
+        data:     `${top.label} has ${top.client} clients and ${top.closeRate}% close rate — top performer by ${dim}.`,
+        angle:    `Feature a ${top.label} clinic owner. 90 seconds, on camera, real numbers before and after. Make it specific and credible.`,
+        format:   'Testimonial Video',
+        impact:   `Attracts more self-qualifying ${top.label} leads — they see someone exactly like them.`
+      });
+      break;
+    }
+  }
+
+  // 3. From hub content performance — amplify winners
+  const topContent = [...hubIntel.content]
+    .filter(e => parseInt(e.leads || 0) >= 2)
+    .sort((a,b) => parseInt(b.leads||0) - parseInt(a.leads||0))
+    .slice(0, 2);
+
+  for (const c of topContent) {
+    suggestions.push({
+      priority: 'high',
+      topic:    `More ${c.type} on ${c.platform} — Proven Format`,
+      data:     `Reach: ${c.reach||'—'} · Engagement: ${c.eng||'—'} · Leads: ${c.leads} — above average performance`,
+      angle:    c.notes || 'This format is working. Same structure, different angle or specialty.',
+      format:   c.type,
+      impact:   `Repeating proven formats reduces creative risk and sustains lead volume.`
+    });
+  }
+
+  // 4. Generic fallback
+  if (suggestions.length === 0) {
+    suggestions.push({
+      priority: 'medium',
+      topic:    'Client Success Story — Start Here',
+      data:     'No objection or content performance data logged yet',
+      angle:    'Pick your single best client. Film a 2-minute video with real numbers: patients added, revenue increase, time saved per week. One real story beats 10 generic posts.',
+      format:   'Short Video',
+      impact:   'Builds trust and addresses the most universal medical marketing objection: "will this work for me?"'
+    });
+  }
+
+  return suggestions;
+}
+
+/* ═══════════════════════════════
+   MAIN ANALYSIS RUNNER
+═══════════════════════════════ */
+async function runAnalysis() {
+  const btn = document.getElementById('refresh-btn');
+  if (btn) btn.disabled = true;
+  showLoading();
+
+  try {
+    const contacts   = await fetchAllContacts();
+    setLoad(`Analyzing ${contacts.length} contacts...`);
+
+    const pipeline   = analyzePipeline(contacts);
+    const segments   = analyzeSegments(contacts);
+    const objections = analyzeObjections(contacts);
+    const hubIntel   = readHubIntel();
+    const signals    = generateSignals(pipeline, segments, objections);
+    const content    = generateContentSuggestions(objections, segments, hubIntel);
+
+    analysisData = { contacts, pipeline, segments, objections, hubIntel, signals, content };
+
+    renderAll();
+    hideLoading();
+    updateTimestamp();
+    toast(`Analysis complete — ${contacts.length} contacts`, 'success');
+  } catch (e) {
+    console.error('Intelligence analysis error:', e);
+    document.getElementById('load-msg').textContent = '⚠️ Analysis Failed';
+    document.getElementById('load-msg').style.color = 'var(--red)';
+    document.getElementById('load-detail').innerHTML =
+      `<div style="color:var(--muted);font-family:var(--mono);font-size:12px;margin-bottom:12px">${esc(e.message)}</div>` +
+      `<button class="retry-btn" onclick="runAnalysis()">↻ Retry</button>`;
+    toast('Analysis failed: ' + e.message.slice(0,80), 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+/* ═══════════════════════════════
+   RENDER — CEO BRIEF
+═══════════════════════════════ */
+function renderCEOBrief() {
+  const { signals, pipeline, segments, objections, content } = analysisData;
+  const el = document.getElementById('tab-brief');
+
+  const week = new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  let html = `
+    <div class="brief-header">
+      <div class="brief-week">Week of ${week}</div>
+      <div class="brief-title">THREEUP INTELLIGENCE BRIEF</div>
+    </div>
+
+    <div class="stat-strip">
+      <div class="stat-card">
+        <div class="stat-label">Total Leads</div>
+        <div class="stat-val purple">${pipeline.total}</div>
+        <div class="stat-sub">in GHL</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Overall Close Rate</div>
+        <div class="stat-val ${rateCls(pipeline.rates.overall)}">${pipeline.rates.overall}%</div>
+        <div class="stat-sub">all leads → client</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Clients</div>
+        <div class="stat-val green">${pipeline.client}</div>
+        <div class="stat-sub">tagged "client"</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Lost Deals</div>
+        <div class="stat-val red">${pipeline.lost}</div>
+        <div class="stat-sub">tagged "lost"</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Deal Value</div>
+        <div class="stat-val amber">${pipeline.avgDeal}</div>
+        <div class="stat-sub">JOD / month</div>
+      </div>
+    </div>
+  `;
+
+  html += renderSignalGroup('🔴 CRITICAL — ACT THIS WEEK',    signals.critical,    'critical');
+  html += renderSignalGroup('⚠️ HIGH PRIORITY — ACT THIS MONTH', signals.high,     'high');
+  html += renderSignalGroup('💡 OPPORTUNITIES — CONSIDER',    signals.opportunity, 'opportunity');
+  html += renderKeyMetrics(pipeline, segments, objections);
+  html += renderContentSuggestions(content);
+
+  el.innerHTML = html;
+}
+
+function renderSignalGroup(title, signals, type) {
+  const emptyText = {
+    critical:    '✅ No critical issues detected this week.',
+    high:        'No high-priority items identified.',
+    opportunity: 'No clear opportunities identified yet — add more data.'
+  }[type] || '';
+
+  let html = `<div class="signal-group">
+    <div class="signal-group-title type-${type}">${title}</div>`;
+
+  if (!signals.length) {
+    html += `<div class="signal-empty">${emptyText}</div>`;
+  } else {
+    signals.forEach((s, i) => {
+      html += `
+        <div class="signal-card type-${type}">
+          <div class="signal-num">${i + 1}</div>
+          <div class="signal-body">
+            <div class="signal-title">${esc(s.title)}</div>
+            <div class="signal-row"><span class="signal-label">Evidence</span><span>${esc(s.evidence)}</span></div>
+            <div class="signal-row"><span class="signal-label">Impact</span><span>${esc(s.impact)}</span></div>
+            <div class="signal-row"><span class="signal-label">Action</span><span>${esc(s.action)}</span></div>
+            <div class="signal-row"><span class="signal-label">Confidence</span><span>${s.confidence}% (${confidenceLabel(s.confidence)})</span></div>
+          </div>
+        </div>`;
+    });
+  }
+
+  return html + '</div>';
+}
+
+function renderKeyMetrics(pipeline, segments, objections) {
+  const ri = r => r >= 60 ? '✅' : r >= 40 ? '⚠️' : '🔴';
+
+  const topSource = bestSegment(segments.source);
+  const topSpec   = bestSegment(segments.specialty);
+  const topCity   = bestSegment(segments.city);
+
+  const funnelRows = [
+    { label:'Lead → Contacted',       rate: pipeline.rates.toContacted,     from: pipeline.total,        to: pipeline.contacted },
+    { label:'Contacted → Discovery',  rate: pipeline.rates.toMeetingBooked, from: pipeline.contacted,    to: pipeline.meetingBooked },
+    { label:'Discovery → Site Visit', rate: pipeline.rates.toSiteVisit,     from: pipeline.meetingDone,  to: pipeline.siteVisit },
+    { label:'Site Visit → Client',    rate: pipeline.rates.toClient,        from: pipeline.siteVisit,    to: pipeline.client },
+  ].filter(r => r.from >= 2);
+
+  const biggestLeak = [...funnelRows].sort((a,b) => (b.from - b.to) - (a.from - a.to))[0];
+  const topObj      = objections.byCategory[0];
+
+  return `
+    <div class="metrics-section">
+      <div class="sec-title">📊 KEY METRICS</div>
+      <div class="metrics-grid">
+        <div>
+          <div class="metric-block-title">Pipeline Health</div>
+          <div class="metric-row"><span class="metric-label">Total Leads</span><span class="metric-val purple">${pipeline.total}</span></div>
+          <div class="metric-row"><span class="metric-label">Overall Close Rate</span><span class="metric-val ${rateCls(pipeline.rates.overall)}">${pipeline.rates.overall}%</span></div>
+          <div class="metric-row"><span class="metric-label">Decision Rate</span><span class="metric-val ${rateCls(pipeline.rates.decisionRate)}">${pipeline.rates.decisionRate}% (won/decided)</span></div>
+          ${funnelRows.map(r =>
+            `<div class="metric-row"><span class="metric-label">${esc(r.label)}</span><span class="metric-val ${rateCls(r.rate)}">${r.rate}% ${ri(r.rate)}</span></div>`
+          ).join('')}
+          <div class="metric-row"><span class="metric-label">Active Clients</span><span class="metric-val green">${pipeline.client}</span></div>
+          <div class="metric-row"><span class="metric-label">Lost Deals</span><span class="metric-val red">${pipeline.lost}</span></div>
+        </div>
+        <div>
+          <div class="metric-block-title">Top Performers</div>
+          ${topSource ? `<div class="metric-row"><span class="metric-label">Best Source</span><span class="metric-val green">${esc(topSource.label)} — ${topSource.closeRate}% close (n=${topSource.total})</span></div>` : '<div class="metric-row"><span class="metric-label">Best Source</span><span class="metric-val">Not enough data</span></div>'}
+          ${topSpec   ? `<div class="metric-row"><span class="metric-label">Best Specialty</span><span class="metric-val green">${esc(topSpec.label)} — ${topSpec.closeRate}% close (n=${topSpec.total})</span></div>` : ''}
+          ${topCity   ? `<div class="metric-row"><span class="metric-label">Best City</span><span class="metric-val green">${esc(topCity.label)} — ${topCity.closeRate}% close (n=${topCity.total})</span></div>` : ''}
+          <div class="metric-block-title" style="margin-top:20px">Top Killers</div>
+          ${biggestLeak ? `<div class="metric-row"><span class="metric-label">Biggest Leak</span><span class="metric-val red">${esc(biggestLeak.label)} — ${biggestLeak.rate}% (losing ${biggestLeak.from - biggestLeak.to} deals)</span></div>` : ''}
+          ${topObj ? `<div class="metric-row"><span class="metric-label">Top Objection</span><span class="metric-val red">"${esc(topObj.label)}" — ${topObj.count} mentions</span></div>` : '<div class="metric-row"><span class="metric-label">Top Objection</span><span class="metric-val">No notes recorded yet</span></div>'}
+          <div class="metric-row"><span class="metric-label">Avg Deal Value</span><span class="metric-val">${pipeline.avgDeal} JOD/month${pipeline.avgDeal === CFG.DEFAULT_DEAL ? ' (default)' : ''}</span></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderContentSuggestions(suggestions) {
+  const cfg = { critical:{ icon:'🔴', label:'CRITICAL', cls:'critical' }, high:{ icon:'⚠️', label:'HIGH', cls:'high' }, medium:{ icon:'💡', label:'MEDIUM', cls:'opportunity' } };
+
+  return `
+    <div class="content-section">
+      <div class="sec-title">📱 CONTENT SUGGESTIONS (Data-Driven)</div>
+      ${suggestions.map(s => {
+        const c = cfg[s.priority] || cfg.medium;
+        return `
+          <div class="content-card type-${c.cls}">
+            <div class="content-priority">${c.icon} ${c.label}: ${esc(s.topic)}</div>
+            <div class="content-row"><span class="content-label">Data</span><span>${esc(s.data)}</span></div>
+            <div class="content-row"><span class="content-label">Angle</span><span>${esc(s.angle)}</span></div>
+            <div class="content-row"><span class="content-label">Format</span><span>${esc(s.format)}</span></div>
+            <div class="content-row"><span class="content-label">Impact</span><span>${esc(s.impact)}</span></div>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+/* ═══════════════════════════════
+   RENDER — PIPELINE TAB
+═══════════════════════════════ */
+function renderPipelineTab() {
+  const { pipeline, segments, objections } = analysisData;
+  const el = document.getElementById('tab-pipeline');
+
+  const stageData = [
+    { label:'Total Leads',      count: pipeline.total,         rate: 100,                            cls:'blue' },
+    { label:'Contacted',        count: pipeline.contacted,     rate: pipeline.rates.toContacted,      cls: rateCls(pipeline.rates.toContacted) },
+    { label:'Discovery Booked', count: pipeline.meetingBooked, rate: pipeline.rates.toMeetingBooked,  cls: rateCls(pipeline.rates.toMeetingBooked) },
+    { label:'Discovery Done',   count: pipeline.meetingDone,   rate: pipeline.rates.toMeetingDone,    cls: rateCls(pipeline.rates.toMeetingDone) },
+    { label:'Site Visit',       count: pipeline.siteVisit,     rate: pipeline.rates.toSiteVisit,      cls: rateCls(pipeline.rates.toSiteVisit) },
+    { label:'Client',           count: pipeline.client,        rate: pipeline.rates.toClient,         cls: rateCls(pipeline.rates.toClient) },
+  ];
+
+  let html = `
+    <div class="pipeline-section">
+      <div class="sec-title">📊 PIPELINE FUNNEL</div>
+      <div class="funnel">
+        ${stageData.map((s, i) => {
+          const width    = pipeline.total > 0 ? Math.max(4, Math.round(s.count / pipeline.total * 100)) : 4;
+          const rateText = i === 0 ? '100% of all leads' : `${s.rate}% from previous stage`;
+          return `
+            <div class="funnel-stage">
+              <div class="funnel-label">
+                <div class="funnel-name">${esc(s.label)}</div>
+                <div class="funnel-rate ${s.cls}">${rateText}</div>
+              </div>
+              <div class="funnel-bar-wrap">
+                <div class="funnel-bar ${s.cls}" style="width:${width}%"></div>
+                <span class="funnel-count">${s.count}</span>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+      <div class="funnel-lost">
+        <span class="metric-label">Lost / Disqualified:</span>
+        <span class="metric-val red" style="margin-left:8px">${pipeline.lost}</span>
+        <span class="metric-label" style="margin-left:16px">Decision Rate (won/decided):</span>
+        <span class="metric-val ${rateCls(pipeline.rates.decisionRate)}" style="margin-left:8px">${pipeline.rates.decisionRate}%</span>
+      </div>
+    </div>
+
+    <div class="segment-section">
+      <div class="sec-title">🎯 SEGMENT ANALYSIS</div>
+      ${mkSegTable(segments.source, 'By Lead Source')}
+      ${mkSegTable(segments.specialty, 'By Specialty')}
+      ${mkSegTable(segments.city, 'By City')}
+    </div>
+
+    <div class="objection-section">
+      <div class="sec-title">💬 OBJECTION BREAKDOWN</div>
+      ${mkObjTable(objections)}
+    </div>`;
+
+  el.innerHTML = html;
+}
+
+function mkSegTable(groups, title) {
+  if (!groups || !groups.length) {
+    return `<div class="seg-title">${title}</div><div class="empty-state">No data with sufficient sample size (min 3 contacts per segment).</div>`;
+  }
+  return `
+    <div class="seg-title">${title}</div>
+    <table class="seg-table">
+      <thead><tr><th>Segment</th><th>Total</th><th>Contacted</th><th>Clients</th><th>Lost</th><th>Close Rate</th><th>Contact Rate</th></tr></thead>
+      <tbody>
+        ${groups.slice(0, 12).map(g => `
+          <tr>
+            <td>${esc(g.label)}</td>
+            <td>${g.total}</td>
+            <td>${g.contacted}</td>
+            <td class="${g.client > 0 ? 'green' : ''}">${g.client}</td>
+            <td class="${g.lost > 0 ? 'red' : ''}">${g.lost}</td>
+            <td class="${rateCls(g.closeRate)}">${g.closeRate}%${g.client + g.lost < 5 ? ' ⚠️' : ''}</td>
+            <td>${g.contactRate}%</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="seg-meta" style="margin-top:6px">⚠️ = less than 5 decisions — treat close rate as indicative only</div>`;
+}
+
+function mkObjTable(objections) {
+  if (!objections.totalWithNotes) {
+    return `<div class="empty-state">No discovery or lost notes found in GHL.<br>Add notes to the <strong>if_not_closed_why</strong> or <strong>lost_reason</strong> fields to unlock objection analysis.</div>`;
+  }
+  return `
+    <div class="seg-meta">Based on ${objections.totalWithNotes} contacts with recorded notes</div>
+    <table class="seg-table">
+      <thead><tr><th>Objection Type</th><th>Mentions</th><th>Lost Deals</th><th>% of Notes</th></tr></thead>
+      <tbody>
+        ${objections.byCategory.map(o => `
+          <tr>
+            <td>${esc(o.label)}</td>
+            <td>${o.count}</td>
+            <td class="${o.lostWithObj > 0 ? 'red' : ''}">${o.lostWithObj}</td>
+            <td class="${pct(o.count, objections.totalWithNotes) >= 30 ? 'red' : pct(o.count, objections.totalWithNotes) >= 15 ? 'amber' : ''}">${pct(o.count, objections.totalWithNotes)}%</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+/* ═══════════════════════════════
+   RENDER — MARKET INTEL TAB
+═══════════════════════════════ */
+function renderMarketTab() {
+  const { hubIntel } = analysisData;
+  const el           = document.getElementById('tab-market');
+
+  const threats = hubIntel.competitor.filter(e =>
+    e.impact && (e.impact.includes('High') || e.impact.includes('Critical') || e.impact.includes('Action'))
+  );
+
+  let html = `
+    <div class="intel-section">
+      <div class="sec-title">⚔️ COMPETITOR THREATS</div>`;
+
+  if (!hubIntel.competitor.length) {
+    html += `<div class="empty-state">No competitor intelligence logged yet.<br>Add observations in the <strong>Intelligence Hub → Competitor Intel</strong>.</div>`;
+  } else if (!threats.length) {
+    html += `<div class="empty-state">No high/critical threats logged. Showing all ${hubIntel.competitor.length} entries below.</div>`;
+    html += renderIntelCards(hubIntel.competitor.slice(0, 5), 'threat');
+  } else {
+    html += renderIntelCards(threats.slice(0, 6), 'threat');
+  }
+
+  html += `</div>
+    <div class="intel-section">
+      <div class="sec-title">🟢 MARKET OBSERVATIONS</div>`;
+
+  if (!hubIntel.market.length) {
+    html += `<div class="empty-state">No market observations logged yet.<br>Add them in the <strong>Intelligence Hub → Market Observations</strong>.</div>`;
+  } else {
+    html += renderMarketCards(hubIntel.market.slice(0, 8));
+  }
+
+  html += `</div>
+    <div class="intel-section">
+      <div class="sec-title">📊 CONTENT PERFORMANCE LOG</div>`;
+
+  if (!hubIntel.content.length) {
+    html += `<div class="empty-state">No content performance data logged yet.<br>Track results in the <strong>Intelligence Hub → Content Performance</strong>.</div>`;
+  } else {
+    const sorted = [...hubIntel.content].sort((a,b) => parseInt(b.leads||0) - parseInt(a.leads||0));
+    html += `<table class="seg-table">
+      <thead><tr><th>Platform</th><th>Type</th><th>Date</th><th>Reach</th><th>Engagement</th><th>Leads</th><th>Eng Rate</th><th>Notes</th></tr></thead>
+      <tbody>
+        ${sorted.slice(0, 12).map(e => {
+          const engRate = e.reach && e.eng ? (parseInt(e.eng)/parseInt(e.reach)*100).toFixed(1)+'%' : '—';
+          return `<tr>
+            <td>${esc(e.platform||'—')}</td>
+            <td>${esc(e.type||'—')}</td>
+            <td>${e.date||'—'}</td>
+            <td>${e.reach||'—'}</td>
+            <td>${e.eng||'—'}</td>
+            <td class="${parseInt(e.leads||0) > 2 ? 'green' : ''}">${e.leads||'—'}</td>
+            <td>${engRate}</td>
+            <td style="max-width:200px;white-space:normal;font-size:11px;color:var(--muted)">${esc((e.notes||'').slice(0,80))}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderIntelCards(entries, type) {
+  return entries.map(e => `
+    <div class="intel-card ${type}">
+      <div class="intel-header">
+        <span class="intel-tag red">${esc(e.name||'')}</span>
+        ${e.type   ? `<span class="intel-tag amber">${esc(e.type)}</span>` : ''}
+        ${e.impact ? `<span class="intel-tag red">${esc(e.impact)}</span>` : ''}
+        <span class="intel-date">${e.date||''}</span>
+      </div>
+      <div class="intel-text">${esc(e.detail||'')}</div>
+    </div>`).join('');
+}
+
+function renderMarketCards(entries) {
+  return entries.map(e => {
+    const isOpp = e.cat && e.cat.includes('Opportunity');
+    return `
+      <div class="intel-card ${isOpp ? 'opportunity' : 'observation'}">
+        <div class="intel-header">
+          <span class="intel-tag purple">${esc(e.city||'')}</span>
+          ${e.spec ? `<span class="intel-tag blue">${esc(e.spec)}</span>` : ''}
+          ${e.cat  ? `<span class="intel-tag gray">${esc(e.cat)}</span>` : ''}
+          <span class="intel-date">${e.date||''}</span>
+        </div>
+        <div class="intel-text">${esc(e.obs||'')}</div>
+        ${e.impl ? `<div class="intel-impact">→ ${esc(e.impl)}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════
+   TAB SWITCHING
+═══════════════════════════════ */
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+  document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.remove('hidden');
+  activeTab = tab;
+}
+
+function renderAll() {
+  renderCEOBrief();
+  renderPipelineTab();
+  renderMarketTab();
+}
+
+/* ═══════════════════════════════
+   UTILITIES
+═══════════════════════════════ */
+function pct(n, d)       { return d ? Math.round(n / d * 100) : 0; }
+function rateCls(r)      { return r >= 60 ? 'green' : r >= 40 ? 'amber' : 'red'; }
+function fmtJOD(n)       { return Number(n).toLocaleString(); }
+function esc(s)          { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function bestSegment(gs) { return (gs||[]).filter(g => g.total >= 5 && g.client + g.lost > 0).sort((a,b) => b.closeRate - a.closeRate)[0] || null; }
+
+function calcConfidence(n) {
+  if (n >= 50) return 90;
+  if (n >= 20) return 75;
+  if (n >= 10) return 60;
+  if (n >= 5)  return 45;
+  return 30;
+}
+
+function confidenceLabel(n) {
+  if (n >= 80) return 'high';
+  if (n >= 60) return 'medium';
+  return 'low — small sample';
+}
+
+function showLoading() {
+  document.getElementById('loading').classList.remove('hidden');
+  ['brief','pipeline','market'].forEach(t => document.getElementById(`tab-${t}`).classList.add('hidden'));
+}
+
+function hideLoading() {
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById(`tab-${activeTab}`).classList.remove('hidden');
+}
+
+function setLoad(msg) {
+  const el = document.getElementById('load-msg');
+  if (el) el.textContent = msg;
+}
+
+function updateTimestamp() {
+  const el = document.getElementById('last-updated');
+  if (el) el.textContent = `Updated: ${new Date().toLocaleString()}`;
+}
+
+function toast(msg, type = '') {
+  const wrap = document.getElementById('toast-wrap');
+  const el   = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+/* ═══════════════════════════════
+   AUTO-LOGIN CHECK
+═══════════════════════════════ */
+if (sessionStorage.getItem('intel_auth') === '1') {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  runAnalysis();
+}
+</script>
+</body>
+</html>
