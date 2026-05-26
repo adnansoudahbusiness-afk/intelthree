@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThreeUp — Intelligence Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --purple:#A396DC;--purple-dark:#8A7BC8;--purple-light:#EDE9F8;
+  --green:#22C55E;--green-bg:#DCFCE7;--red:#EF4444;--red-bg:#FEE2E2;
+  --amber:#F59E0B;--amber-bg:#FEF3C7;
+  --g50:#F9FAFB;--g100:#F3F4F6;--g200:#E5E7EB;--g300:#D1D5DB;
+  --g400:#9CA3AF;--g500:#6B7280;--g600:#4B5563;--g700:#374151;--g800:#1F2937;--g900:#111827;
+  --font:'Syne',sans-serif;--mono:'DM Mono',monospace;
+}
+body{font-family:var(--font);background:#F5F4FC;color:var(--g900);min-height:100vh}
+.hidden{display:none!important}
+
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#EDE9F8 0%,#F5F4FC 100%)}
+.login-box{background:#fff;border-radius:20px;padding:40px;width:340px;box-shadow:0 8px 40px rgba(163,150,220,.18);text-align:center}
+.login-logo{width:52px;height:52px;background:var(--purple);border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;margin:0 auto 18px}
+.login-title{font-size:22px;font-weight:800;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--g500);margin-bottom:24px}
+.login-input{width:100%;padding:11px 14px;border:1.5px solid var(--g200);border-radius:10px;font-family:var(--font);font-size:14px;outline:none;transition:border-color .15s;margin-bottom:12px}
+.login-input:focus{border-color:var(--purple)}
+.login-btn{width:100%;padding:12px;background:var(--purple);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;transition:background .15s}
+.login-btn:hover{background:var(--purple-dark)}
+.login-err{color:var(--red);font-size:13px;margin-top:10px;min-height:18px}
+
+/* TOPBAR */
+#app{display:flex;flex-direction:column;min-height:100vh}
+#topbar{background:#fff;border-bottom:1px solid var(--g200);height:56px;display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.brand{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.brand-logo{width:30px;height:30px;background:var(--purple);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px}
+.brand-name{font-weight:700;font-size:14px}
+.brand-sub{font-size:9px;color:var(--purple);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-family:var(--mono)}
+.tb-spacer{flex:1}
+#last-fetch{font-size:11px;color:var(--g400);font-family:var(--mono)}
+.tb-btn{padding:7px 13px;border-radius:8px;border:1.5px solid var(--g200);background:#fff;font-family:var(--font);font-size:12px;font-weight:600;color:var(--g600);cursor:pointer;transition:all .15s;white-space:nowrap}
+.tb-btn:hover{border-color:var(--purple);color:var(--purple)}
+.tb-btn.primary{background:var(--purple);color:#fff;border-color:var(--purple)}
+.tb-btn.primary:hover{background:var(--purple-dark)}
+.tb-btn.danger:hover{border-color:var(--red);color:var(--red)}
+
+/* MAIN LAYOUT */
+#main{padding:20px 24px;max-width:1260px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+
+/* LOADING */
+#loading-bar{padding:60px;text-align:center}
+.spin{width:40px;height:40px;border:3px solid var(--purple-light);border-top-color:var(--purple);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin-msg{font-size:13px;color:var(--g500);font-family:var(--mono)}
+
+/* STAT STRIP */
+.stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.stat-card{background:#fff;border-radius:12px;padding:16px;border:1px solid var(--g200);box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.stat-label{font-size:10px;color:var(--g400);font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px;font-family:var(--mono)}
+.stat-val{font-size:28px;font-weight:800;line-height:1}
+.stat-val.purple{color:var(--purple)}
+.stat-val.green{color:#16A34A}
+.stat-val.amber{color:#D97706}
+.stat-val.red{color:#DC2626}
+.stat-val.blue{color:#2563EB}
+.stat-sub{font-size:11px;color:var(--g400);margin-top:4px;font-family:var(--mono)}
+
+/* SECTION CARDS */
+.section{background:#fff;border-radius:14px;border:1px solid var(--g200);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.sec-hdr{padding:16px 20px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;transition:background .15s}
+.sec-hdr:hover{background:var(--g50)}
+.sec-icon{font-size:18px;flex-shrink:0}
+.sec-title{font-size:15px;font-weight:700;flex:1}
+.sec-count{font-size:11px;color:var(--g500);font-family:var(--mono);background:var(--g100);border-radius:20px;padding:2px 10px}
+.sec-chev{color:var(--g400);transition:transform .2s;font-size:18px;line-height:1;flex-shrink:0}
+.section.open .sec-chev{transform:rotate(180deg)}
+.sec-body{display:none;padding:16px 20px 20px;border-top:1px solid var(--g100)}
+.section.open .sec-body{display:block}
+
+/* INVENTORY TABLE */
+.inv-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:8px}
+.inv-item{background:var(--g50);border-radius:10px;padding:12px 14px;border:1px solid var(--g200)}
+.inv-item-label{font-size:11px;color:var(--g500);font-family:var(--mono);margin-bottom:4px}
+.inv-item-val{font-size:20px;font-weight:800}
+.inv-item-sub{font-size:11px;color:var(--g400);margin-top:2px}
+
+/* INTEL ENTRIES LIST */
+.entry-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.entry-card{background:var(--g50);border:1px solid var(--g200);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:12px}
+.entry-card.competitor{border-left:3px solid var(--red)}
+.entry-card.market{border-left:3px solid var(--amber)}
+.entry-card.content{border-left:3px solid var(--purple)}
+.entry-meta{font-size:10px;color:var(--g400);font-family:var(--mono);white-space:nowrap;flex-shrink:0;margin-top:2px}
+.entry-body{flex:1;min-width:0}
+.entry-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:1px 7px;border-radius:20px;margin-bottom:4px;font-family:var(--mono)}
+.tag-red{background:var(--red-bg);color:#B91C1C}
+.tag-amber{background:var(--amber-bg);color:#92400E}
+.tag-purple{background:var(--purple-light);color:var(--purple-dark)}
+.tag-green{background:var(--green-bg);color:#15803D}
+.entry-text{font-size:13px;color:var(--g800);line-height:1.5}
+.entry-detail{font-size:11px;color:var(--g500);margin-top:3px;font-family:var(--mono)}
+.entry-del{background:none;border:none;cursor:pointer;color:var(--g300);font-size:16px;line-height:1;padding:0 2px;flex-shrink:0;transition:color .15s}
+.entry-del:hover{color:var(--red)}
+.empty-entries{text-align:center;padding:24px;color:var(--g400);font-size:13px;border:1.5px dashed var(--g200);border-radius:10px;font-family:var(--mono)}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.form-grid-3{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:11px;font-weight:700;color:var(--g600);letter-spacing:.04em;font-family:var(--mono)}
+.form-input,.form-select,.form-textarea{padding:9px 12px;border:1.5px solid var(--g200);border-radius:8px;font-family:var(--font);font-size:13px;outline:none;transition:border-color .15s;background:#fff;color:var(--g900);width:100%}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--purple)}
+.form-textarea{resize:vertical;min-height:80px;font-family:var(--mono);font-size:12px;line-height:1.6}
+.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+.form-sub{font-size:11px;color:var(--g400);font-family:var(--mono)}
+
+/* TOAST */
+#toast-wrap{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--g900);color:#fff;padding:10px 16px;border-radius:10px;font-size:12px;font-family:var(--mono);box-shadow:0 4px 16px rgba(0,0,0,.2);animation:fadeUp .2s ease;max-width:320px}
+.toast.success{background:#15803D}
+.toast.error{background:#DC2626}
+.toast.warning{background:#D97706}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:900px){
+  .stat-strip{grid-template-columns:repeat(3,1fr)}
+  .inv-grid{grid-template-columns:1fr 1fr}
+  .form-grid,.form-grid-3{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .stat-strip{grid-template-columns:repeat(2,1fr)}
+  .inv-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">3UP</div>
+    <div class="login-title">Intelligence Hub</div>
+    <div class="login-sub">ThreeUp Command Center</div>
+    <input type="password" id="login-pw" class="login-input" placeholder="Password" autocomplete="current-password">
+    <div class="login-err" id="login-err"></div>
+    <button class="login-btn" onclick="doLogin()">Enter Hub</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <div id="topbar">
+    <div class="brand">
+      <div class="brand-logo">3UP</div>
+      <div>
+        <div class="brand-name">ThreeUp</div>
+        <div class="brand-sub">Intelligence Hub</div>
+      </div>
+    </div>
+    <div class="tb-spacer"></div>
+    <div id="last-fetch"></div>
+    <button class="tb-btn primary" onclick="refreshGHL()" id="refresh-btn">↻ Refresh GHL</button>
+    <button class="tb-btn danger" onclick="doLogout()">Logout</button>
+  </div>
+
+  <div id="main">
+
+    <!-- LOADING -->
+    <div id="loading-bar">
+      <div class="spin"></div>
+      <div class="spin-msg" id="load-msg">Connecting to GHL...</div>
+    </div>
+
+    <!-- CONTENT (hidden until loaded) -->
+    <div id="content" class="hidden">
+
+      <!-- STAT STRIP -->
+      <div class="stat-strip">
+        <div class="stat-card">
+          <div class="stat-label">Total Contacts</div>
+          <div class="stat-val purple" id="s-total">—</div>
+          <div class="stat-sub">in GHL</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cleanup Done</div>
+          <div class="stat-val green" id="s-cleaned">—</div>
+          <div class="stat-sub">tagged cleanup-done</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Needs Cleanup</div>
+          <div class="stat-val amber" id="s-needs">—</div>
+          <div class="stat-sub">missing fields</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Competitor Intel</div>
+          <div class="stat-val red" id="s-comp">—</div>
+          <div class="stat-sub">manual entries</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Market Intel</div>
+          <div class="stat-val amber" id="s-mkt">—</div>
+          <div class="stat-sub">observations</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Content Logs</div>
+          <div class="stat-val purple" id="s-cnt">—</div>
+          <div class="stat-sub">performance entries</div>
+        </div>
+      </div>
+
+      <!-- DATA INVENTORY -->
+      <div class="section open" id="sec-inventory">
+        <div class="sec-hdr" onclick="toggleSec('inventory')">
+          <div class="sec-icon">📊</div>
+          <div class="sec-title">Data Inventory</div>
+          <div class="sec-chev">⌄</div>
+        </div>
+        <div class="sec-body">
+          <div class="inv-grid" id="inv-grid"></div>
+          <div class="form-sub" id="inv-updated"></div>
+        </div>
+      </div>
+
+      <!-- COMPETITOR INTEL -->
+      <div class="section open" id="sec-competitor">
+        <div class="sec-hdr" onclick="toggleSec('competitor')">
+          <div class="sec-icon">🔍</div>
+          <div class="sec-title">Competitor Intelligence</div>
+          <div class="sec-count" id="comp-count">0</div>
+          <div class="sec-chev">⌄</div>
+        </div>
+        <div class="sec-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Competitor</label>
+              <select class="form-select" id="comp-name">
+                <option value="">Select competitor...</option>
+                <option>Clinica</option>
+                <option>Crpton</option>
+                <option>Dentolize</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Observation Type</label>
+              <select class="form-select" id="comp-type">
+                <option value="">Select type...</option>
+                <option>Pricing</option>
+                <option>New Offer / Package</option>
+                <option>Marketing Campaign</option>
+                <option>New Market / City</option>
+                <option>Product Update</option>
+                <option>Weakness / Gap</option>
+                <option>Client Win / Loss</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Impact Level</label>
+              <select class="form-select" id="comp-impact">
+                <option value="">Select impact...</option>
+                <option>High — Action Required</option>
+                <option>Medium — Monitor</option>
+                <option>Low — FYI</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date Observed</label>
+              <input type="date" class="form-input" id="comp-date">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:14px">
+            <label class="form-label">Details</label>
+            <textarea class="form-textarea" id="comp-detail" placeholder="What did you observe? Be specific — pricing, messaging, clinic targeted, etc."></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="tb-btn" onclick="clearCompForm()">Clear</button>
+            <button class="tb-btn primary" onclick="saveCompetitor()">Save Entry</button>
+          </div>
+          <div class="entry-list" id="comp-entries"></div>
+        </div>
+      </div>
+
+      <!-- MARKET OBSERVATIONS -->
+      <div class="section open" id="sec-market">
+        <div class="sec-hdr" onclick="toggleSec('market')">
+          <div class="sec-icon">🏙️</div>
+          <div class="sec-title">Market Observations</div>
+          <div class="sec-count" id="mkt-count">0</div>
+          <div class="sec-chev">⌄</div>
+        </div>
+        <div class="sec-body">
+          <div class="form-grid form-grid-3">
+            <div class="form-group">
+              <label class="form-label">City</label>
+              <select class="form-select" id="mkt-city">
+                <option value="">Select city...</option>
+                <option>Amman</option>
+                <option>Irbid</option>
+                <option>Zarqa</option>
+                <option>Aqaba</option>
+                <option>Salt</option>
+                <option>Madaba</option>
+                <option>Karak</option>
+                <option>Multiple Cities</option>
+                <option>National</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Specialty / Sector</label>
+              <select class="form-select" id="mkt-spec">
+                <option value="">Select specialty...</option>
+                <option>Dentistry</option>
+                <option>Dermatology</option>
+                <option>Physiotherapy</option>
+                <option>Ophthalmology</option>
+                <option>General Practice</option>
+                <option>Gynecology</option>
+                <option>Orthopedics</option>
+                <option>Pediatrics</option>
+                <option>ENT</option>
+                <option>Cardiology</option>
+                <option>All Specialties</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <select class="form-select" id="mkt-cat">
+                <option value="">Select category...</option>
+                <option>Patient Demand Shift</option>
+                <option>Pricing Trend</option>
+                <option>Regulatory / Legal</option>
+                <option>Seasonal Pattern</option>
+                <option>New Clinic Opened</option>
+                <option>Technology Adoption</option>
+                <option>Economic Signal</option>
+                <option>Referral Network Change</option>
+                <option>Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid" style="margin-bottom:14px">
+            <div class="form-group">
+              <label class="form-label">Observation</label>
+              <textarea class="form-textarea" id="mkt-obs" placeholder="What did you observe in this market?"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Implication for ThreeUp</label>
+              <textarea class="form-textarea" id="mkt-impl" placeholder="What should we do differently because of this?"></textarea>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Confidence Level</label>
+              <select class="form-select" id="mkt-conf">
+                <option value="">Select confidence...</option>
+                <option>High — Direct observation</option>
+                <option>Medium — Secondhand info</option>
+                <option>Low — Speculation / rumour</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input type="date" class="form-input" id="mkt-date">
+            </div>
+          </div>
+          <div class="form-actions" style="margin-top:14px">
+            <button class="tb-btn" onclick="clearMktForm()">Clear</button>
+            <button class="tb-btn primary" onclick="saveMarket()">Save Observation</button>
+          </div>
+          <div class="entry-list" id="mkt-entries"></div>
+        </div>
+      </div>
+
+      <!-- CONTENT PERFORMANCE -->
+      <div class="section open" id="sec-content">
+        <div class="sec-hdr" onclick="toggleSec('content')">
+          <div class="sec-icon">📱</div>
+          <div class="sec-title">Content Performance Tracking</div>
+          <div class="sec-count" id="cnt-count">0</div>
+          <div class="sec-chev">⌄</div>
+        </div>
+        <div class="sec-body">
+          <div class="form-grid form-grid-3">
+            <div class="form-group">
+              <label class="form-label">Platform</label>
+              <select class="form-select" id="cnt-platform">
+                <option value="">Select platform...</option>
+                <option>Facebook</option>
+                <option>Instagram</option>
+                <option>LinkedIn</option>
+                <option>TikTok</option>
+                <option>Google Ads</option>
+                <option>YouTube</option>
+                <option>Website / Blog</option>
+                <option>WhatsApp / Broadcast</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Content Type</label>
+              <select class="form-select" id="cnt-type">
+                <option value="">Select type...</option>
+                <option>Case Study</option>
+                <option>Before & After</option>
+                <option>Educational</option>
+                <option>Testimonial</option>
+                <option>Offer / Promotion</option>
+                <option>Brand Story</option>
+                <option>Behind the Scenes</option>
+                <option>Product Demo</option>
+                <option>Ad — Lead Gen</option>
+                <option>Ad — Awareness</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Post Date</label>
+              <input type="date" class="form-input" id="cnt-date">
+            </div>
+          </div>
+          <div class="form-grid form-grid-3" style="margin-bottom:14px">
+            <div class="form-group">
+              <label class="form-label">Reach</label>
+              <input type="number" class="form-input" id="cnt-reach" placeholder="e.g. 4200" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Engagement (likes + comments)</label>
+              <input type="number" class="form-input" id="cnt-eng" placeholder="e.g. 312" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Leads Generated</label>
+              <input type="number" class="form-input" id="cnt-leads" placeholder="e.g. 8" min="0">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:14px">
+            <label class="form-label">Notes / Key Takeaway</label>
+            <textarea class="form-textarea" id="cnt-notes" placeholder="What worked? What flopped? What should we repeat or avoid?"></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="tb-btn" onclick="clearCntForm()">Clear</button>
+            <button class="tb-btn primary" onclick="saveContent()">Save Log</button>
+          </div>
+          <div class="entry-list" id="cnt-entries"></div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<div id="toast-wrap"></div>
+
+<script>
+'use strict';
+
+const CFG = {
+  key:  'pit-cc34a5f9-fe31-42ff-acbc-c9cf72715da1',
+  loc:  'ck8gYVHUEnLEIg0OVsLd',
+  base: 'https://services.leadconnectorhq.com',
+  pw:   'hub3up2026',
+  f: {
+    specialty:     'S4UO0tXC5s38qpsET42Z',
+    city:          'rUxALKB5pbMjKMSqePCp',
+    source:        'cqMoQkgXs97QE93t3kWj'
+  },
+  store: {
+    comp:  'hub_competitor_intel',
+    mkt:   'hub_market_intel',
+    cnt:   'hub_content_perf'
+  }
+};
+
+const HDRS = {
+  'Authorization': `Bearer ${CFG.key}`,
+  'Version':       '2021-07-28',
+  'Content-Type':  'application/json'
+};
+
+/* ── AUTH ── */
+document.getElementById('login-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function doLogin() {
+  const pw = document.getElementById('login-pw').value.trim();
+  if (pw === CFG.pw) {
+    sessionStorage.setItem('hub_auth', '1');
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    init();
+  } else {
+    document.getElementById('login-err').textContent = 'Incorrect password.';
+    document.getElementById('login-pw').value = '';
+    document.getElementById('login-pw').focus();
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('hub_auth');
+  location.reload();
+}
+
+/* ── INIT ── */
+async function init() {
+  if (sessionStorage.getItem('hub_auth') !== '1') return;
+  setTodayDates();
+  renderAllEntries();
+  await refreshGHL();
+}
+
+function setTodayDates() {
+  const today = new Date().toISOString().slice(0, 10);
+  ['comp-date', 'mkt-date', 'cnt-date'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = today;
+  });
+}
+
+/* ── GHL FETCH ── */
+let allContacts = [];
+
+async function refreshGHL() {
+  const btn = document.getElementById('refresh-btn');
+  if (btn) btn.disabled = true;
+  document.getElementById('loading-bar').classList.remove('hidden');
+  document.getElementById('content').classList.add('hidden');
+  setLoadMsg('Connecting to GHL...');
+
+  try {
+    allContacts = [];
+    let page = 1;
+    let hasMore = true;
+    while (hasMore) {
+      setLoadMsg(`Fetching contacts... page ${page}`);
+      const res = await fetch(
+        `${CFG.base}/contacts/?locationId=${CFG.loc}&limit=100&page=${page}`,
+        { headers: HDRS }
+      );
+      if (!res.ok) throw new Error(`GHL ${res.status}`);
+      const data = await res.json();
+      const batch = data.contacts || [];
+      allContacts.push(...batch);
+      hasMore = batch.length === 100;
+      page++;
+    }
+
+    document.getElementById('last-fetch').textContent =
+      `Last fetch: ${new Date().toLocaleTimeString()}`;
+    renderStats();
+    renderInventory();
+    renderAllEntries();
+    document.getElementById('loading-bar').classList.add('hidden');
+    document.getElementById('content').classList.remove('hidden');
+    toast(`Loaded ${allContacts.length} contacts from GHL`, 'success');
+  } catch (e) {
+    setLoadMsg(`Error: ${e.message}`);
+    toast('GHL fetch failed: ' + e.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function setLoadMsg(msg) {
+  const el = document.getElementById('load-msg');
+  if (el) el.textContent = msg;
+}
+
+function cf(c, fname) {
+  const id = CFG.f[fname];
+  const arr = c.customFields || c.customField || [];
+  const m = arr.find(f => f.id === id);
+  return m ? (m.value || m.fieldValue || '') : '';
+}
+
+function isBlank(v) { return !v || !v.toString().trim(); }
+
+/* ── STATS ── */
+function renderStats() {
+  const total   = allContacts.length;
+  const cleaned = allContacts.filter(c => c.tags && c.tags.includes('cleanup-done')).length;
+  const needs   = allContacts.filter(c =>
+    !(c.tags && c.tags.includes('archived')) &&
+    !(c.tags && c.tags.includes('duplicate')) &&
+    (isBlank(cf(c,'specialty')) || isBlank(cf(c,'city')) || isBlank(cf(c,'source')))
+  ).length;
+  const comp = loadEntries(CFG.store.comp).length;
+  const mkt  = loadEntries(CFG.store.mkt).length;
+  const cnt  = loadEntries(CFG.store.cnt).length;
+
+  set('s-total',   total);
+  set('s-cleaned', cleaned);
+  set('s-needs',   needs);
+  set('s-comp',    comp);
+  set('s-mkt',     mkt);
+  set('s-cnt',     cnt);
+}
+
+function renderInventory() {
+  const total   = allContacts.length;
+  const cleaned = allContacts.filter(c => c.tags && c.tags.includes('cleanup-done')).length;
+  const archived = allContacts.filter(c =>
+    c.tags && (c.tags.includes('archived') || c.tags.includes('duplicate'))
+  ).length;
+  const needsCleanup = allContacts.filter(c =>
+    !(c.tags && c.tags.includes('archived')) &&
+    !(c.tags && c.tags.includes('duplicate')) &&
+    (isBlank(cf(c,'specialty')) || isBlank(cf(c,'city')) || isBlank(cf(c,'source')))
+  ).length;
+  const withSpec = allContacts.filter(c => !isBlank(cf(c,'specialty'))).length;
+  const withCity = allContacts.filter(c => !isBlank(cf(c,'city'))).length;
+  const withSrc  = allContacts.filter(c => !isBlank(cf(c,'source'))).length;
+  const comp = loadEntries(CFG.store.comp).length;
+  const mkt  = loadEntries(CFG.store.mkt).length;
+  const cnt  = loadEntries(CFG.store.cnt).length;
+
+  const items = [
+    { label: 'Total GHL Contacts',   val: total,        sub: 'all contacts in location' },
+    { label: 'Cleanup Done',          val: cleaned,      sub: `${pct(cleaned,total)}% of total` },
+    { label: 'Needs Cleanup',         val: needsCleanup, sub: 'missing ≥1 field' },
+    { label: 'Archived / Duplicate', val: archived,     sub: 'excluded from pipeline' },
+    { label: 'Have Specialty',        val: withSpec,     sub: `${pct(withSpec,total)}% coverage` },
+    { label: 'Have City',             val: withCity,     sub: `${pct(withCity,total)}% coverage` },
+    { label: 'Have Source',           val: withSrc,      sub: `${pct(withSrc,total)}% coverage` },
+    { label: 'Competitor Intel',      val: comp,         sub: 'manual entries' },
+    { label: 'Market Observations',   val: mkt,          sub: 'manual entries' },
+    { label: 'Content Logs',          val: cnt,          sub: 'performance records' },
+  ];
+
+  document.getElementById('inv-grid').innerHTML = items.map(it => `
+    <div class="inv-item">
+      <div class="inv-item-label">${esc(it.label)}</div>
+      <div class="inv-item-val">${it.val}</div>
+      <div class="inv-item-sub">${esc(it.sub)}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('inv-updated').textContent =
+    `Last updated: ${new Date().toLocaleString()}`;
+}
+
+function pct(n, d) { return d ? Math.round(n / d * 100) : 0; }
+
+/* ── SECTIONS ── */
+function toggleSec(id) {
+  document.getElementById(`sec-${id}`).classList.toggle('open');
+}
+
+/* ── LOCAL STORAGE ── */
+function loadEntries(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '[]'); }
+  catch { return []; }
+}
+
+function saveEntries(key, arr) {
+  localStorage.setItem(key, JSON.stringify(arr));
+}
+
+function deleteEntry(key, idx) {
+  if (!confirm('Delete this entry?')) return;
+  const arr = loadEntries(key);
+  arr.splice(idx, 1);
+  saveEntries(key, arr);
+  renderAllEntries();
+  renderStats();
+  toast('Entry deleted', 'warning');
+}
+
+/* ── RENDER ALL ENTRIES ── */
+function renderAllEntries() {
+  renderCompEntries();
+  renderMktEntries();
+  renderCntEntries();
+  updateCounts();
+}
+
+function updateCounts() {
+  set('comp-count', loadEntries(CFG.store.comp).length + ' entries');
+  set('mkt-count',  loadEntries(CFG.store.mkt).length  + ' entries');
+  set('cnt-count',  loadEntries(CFG.store.cnt).length  + ' entries');
+}
+
+/* ── COMPETITOR INTEL ── */
+function saveCompetitor() {
+  const name   = val('comp-name');
+  const type   = val('comp-type');
+  const impact = val('comp-impact');
+  const date   = val('comp-date');
+  const detail = val('comp-detail').trim();
+
+  if (!name)   { toast('Select a competitor', 'error'); return; }
+  if (!type)   { toast('Select an observation type', 'error'); return; }
+  if (!detail) { toast('Add details about the observation', 'error'); return; }
+
+  const arr = loadEntries(CFG.store.comp);
+  arr.unshift({ name, type, impact, date, detail, saved: new Date().toISOString() });
+  saveEntries(CFG.store.comp, arr);
+  clearCompForm();
+  renderCompEntries();
+  renderStats();
+  updateCounts();
+  toast('Competitor intel saved', 'success');
+}
+
+function clearCompForm() {
+  ['comp-name','comp-type','comp-impact'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('comp-detail').value = '';
+  document.getElementById('comp-date').value = new Date().toISOString().slice(0,10);
+}
+
+function renderCompEntries() {
+  const arr = loadEntries(CFG.store.comp);
+  const el  = document.getElementById('comp-entries');
+  if (!arr.length) {
+    el.innerHTML = '<div class="empty-entries">No competitor intel yet. Add your first observation above.</div>';
+    return;
+  }
+  const impactClass = { 'High — Action Required': 'tag-red', 'Medium — Monitor': 'tag-amber', 'Low — FYI': 'tag-green' };
+  el.innerHTML = arr.map((e, i) => `
+    <div class="entry-card competitor">
+      <div class="entry-body">
+        <div>
+          <span class="entry-tag tag-red">${esc(e.name)}</span>
+          <span class="entry-tag tag-amber" style="margin-left:4px">${esc(e.type)}</span>
+          ${e.impact ? `<span class="entry-tag ${impactClass[e.impact]||'tag-amber'}" style="margin-left:4px">${esc(e.impact)}</span>` : ''}
+        </div>
+        <div class="entry-text">${esc(e.detail)}</div>
+        <div class="entry-detail">${e.date || ''} · saved ${fmtSaved(e.saved)}</div>
+      </div>
+      <button class="entry-del" onclick="deleteEntry('${CFG.store.comp}',${i})" title="Delete">✕</button>
+    </div>
+  `).join('');
+}
+
+/* ── MARKET INTEL ── */
+function saveMarket() {
+  const city  = val('mkt-city');
+  const spec  = val('mkt-spec');
+  const cat   = val('mkt-cat');
+  const obs   = val('mkt-obs').trim();
+  const impl  = val('mkt-impl').trim();
+  const conf  = val('mkt-conf');
+  const date  = val('mkt-date');
+
+  if (!city) { toast('Select a city', 'error'); return; }
+  if (!obs)  { toast('Add your observation', 'error'); return; }
+
+  const arr = loadEntries(CFG.store.mkt);
+  arr.unshift({ city, spec, cat, obs, impl, conf, date, saved: new Date().toISOString() });
+  saveEntries(CFG.store.mkt, arr);
+  clearMktForm();
+  renderMktEntries();
+  renderStats();
+  updateCounts();
+  toast('Market observation saved', 'success');
+}
+
+function clearMktForm() {
+  ['mkt-city','mkt-spec','mkt-cat','mkt-conf'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('mkt-obs').value  = '';
+  document.getElementById('mkt-impl').value = '';
+  document.getElementById('mkt-date').value = new Date().toISOString().slice(0,10);
+}
+
+function renderMktEntries() {
+  const arr = loadEntries(CFG.store.mkt);
+  const el  = document.getElementById('mkt-entries');
+  if (!arr.length) {
+    el.innerHTML = '<div class="empty-entries">No market observations yet. Add your first one above.</div>';
+    return;
+  }
+  const confClass = {
+    'High — Direct observation': 'tag-green',
+    'Medium — Secondhand info':  'tag-amber',
+    'Low — Speculation / rumour':'tag-red'
+  };
+  el.innerHTML = arr.map((e, i) => `
+    <div class="entry-card market">
+      <div class="entry-body">
+        <div>
+          <span class="entry-tag tag-amber">${esc(e.city)}</span>
+          ${e.spec ? `<span class="entry-tag tag-purple" style="margin-left:4px">${esc(e.spec)}</span>` : ''}
+          ${e.cat  ? `<span class="entry-tag tag-green"  style="margin-left:4px">${esc(e.cat)}</span>`  : ''}
+          ${e.conf ? `<span class="entry-tag ${confClass[e.conf]||'tag-amber'}" style="margin-left:4px">${esc(e.conf)}</span>` : ''}
+        </div>
+        <div class="entry-text">${esc(e.obs)}</div>
+        ${e.impl ? `<div class="entry-detail" style="margin-top:5px;color:var(--purple-dark)">→ ${esc(e.impl)}</div>` : ''}
+        <div class="entry-detail">${e.date || ''} · saved ${fmtSaved(e.saved)}</div>
+      </div>
+      <button class="entry-del" onclick="deleteEntry('${CFG.store.mkt}',${i})" title="Delete">✕</button>
+    </div>
+  `).join('');
+}
+
+/* ── CONTENT PERFORMANCE ── */
+function saveContent() {
+  const platform = val('cnt-platform');
+  const type     = val('cnt-type');
+  const date     = val('cnt-date');
+  const reach    = val('cnt-reach');
+  const eng      = val('cnt-eng');
+  const leads    = val('cnt-leads');
+  const notes    = val('cnt-notes').trim();
+
+  if (!platform) { toast('Select a platform', 'error'); return; }
+  if (!type)     { toast('Select a content type', 'error'); return; }
+  if (!notes)    { toast('Add notes / takeaway', 'error'); return; }
+
+  const arr = loadEntries(CFG.store.cnt);
+  arr.unshift({ platform, type, date, reach, eng, leads, notes, saved: new Date().toISOString() });
+  saveEntries(CFG.store.cnt, arr);
+  clearCntForm();
+  renderCntEntries();
+  renderStats();
+  updateCounts();
+  toast('Content log saved', 'success');
+}
+
+function clearCntForm() {
+  ['cnt-platform','cnt-type'].forEach(id => document.getElementById(id).value = '');
+  ['cnt-reach','cnt-eng','cnt-leads'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cnt-notes').value = '';
+  document.getElementById('cnt-date').value  = new Date().toISOString().slice(0,10);
+}
+
+function renderCntEntries() {
+  const arr = loadEntries(CFG.store.cnt);
+  const el  = document.getElementById('cnt-entries');
+  if (!arr.length) {
+    el.innerHTML = '<div class="empty-entries">No content logs yet. Add your first entry above.</div>';
+    return;
+  }
+  el.innerHTML = arr.map((e, i) => {
+    const engRate = e.reach && e.eng
+      ? (parseInt(e.eng) / parseInt(e.reach) * 100).toFixed(1) + '%'
+      : '—';
+    return `
+    <div class="entry-card content">
+      <div class="entry-body">
+        <div>
+          <span class="entry-tag tag-purple">${esc(e.platform)}</span>
+          <span class="entry-tag tag-green" style="margin-left:4px">${esc(e.type)}</span>
+        </div>
+        <div class="entry-text">${esc(e.notes)}</div>
+        <div class="entry-detail">
+          ${e.date ? e.date + ' · ' : ''}
+          Reach: ${e.reach||'—'} ·
+          Eng: ${e.eng||'—'} (${engRate}) ·
+          Leads: ${e.leads||'—'} ·
+          saved ${fmtSaved(e.saved)}
+        </div>
+      </div>
+      <button class="entry-del" onclick="deleteEntry('${CFG.store.cnt}',${i})" title="Delete">✕</button>
+    </div>`;
+  }).join('');
+}
+
+/* ── UTILITIES ── */
+function val(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+function set(id, v) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = v;
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtSaved(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short' }) + ' ' +
+         d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+}
+
+function toast(msg, type = '') {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+/* ── AUTO LOGIN CHECK ── */
+if (sessionStorage.getItem('hub_auth') === '1') {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  init();
+}
+</script>
+</body>
+</html>
