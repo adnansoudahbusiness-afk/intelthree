@@ -1,0 +1,1643 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThreeUp — Setter Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--purple:#A396DC;--purple-light:#c4b9f0;--purple-dark:#7b6ec4;--white:#fff;--off-white:#fafafa;--text:#1a1a1a;--muted:#6b6b6b;--border:#e5e5e5;--green:#4dff91;--green-dark:#00cc5a;--red:#ff5a5a;--red-dark:#cc2222;--amber:#ffb84d;--amber-dark:#e69500;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Mono',monospace;background:var(--off-white);color:var(--text);min-height:100vh;font-size:13px;}
+h1,h2,h3,.logo{font-family:'Syne',sans-serif;}
+.hidden{display:none!important;}
+.fade-in{animation:fadeIn .25s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.shake{animation:shake .4s ease;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(163,150,220,.4)}70%{box-shadow:0 0 0 8px rgba(163,150,220,0)}}
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:8px;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-primary{background:var(--purple);color:#fff;}.btn-primary:hover{background:var(--purple-dark);transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}.btn-ghost:hover{background:var(--border);color:var(--text);}
+.btn-green{background:var(--green);color:#000;}.btn-green:hover{background:var(--green-dark);color:#fff;}
+.btn-red{background:var(--red);color:#fff;}.btn-red:hover{background:var(--red-dark);}
+.btn-amber{background:var(--amber);color:#000;}.btn-amber:hover{background:var(--amber-dark);}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:6px;}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f0eeff 0%,#fafafa 60%,#fff 100%);}
+.login-card{background:#fff;border-radius:20px;padding:48px 40px;box-shadow:0 8px 40px rgba(163,150,220,.18),0 2px 8px rgba(0,0,0,.06);width:360px;text-align:center;}
+.login-logo{font-size:28px;font-weight:800;color:var(--purple);margin-bottom:6px;}
+.login-sub{color:var(--muted);font-size:12px;margin-bottom:32px;}
+.login-input{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Mono',monospace;font-size:14px;outline:none;transition:border-color .15s;background:var(--off-white);letter-spacing:3px;text-align:center;margin-bottom:12px;}
+.login-input:focus{border-color:var(--purple);background:#fff;}
+.login-error{color:var(--red);font-size:11px;margin-bottom:10px;min-height:16px;}
+.login-btn{width:100%;padding:13px;font-size:14px;border-radius:10px;margin-top:4px;justify-content:center;}
+
+/* TOPBAR */
+#topbar{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.topbar-logo{font-size:20px;font-weight:800;color:var(--purple);}
+.topbar-date{font-size:12px;color:var(--muted);}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.setter-name-display{font-size:12px;color:var(--text);cursor:pointer;padding:4px 8px;border-radius:6px;border:1px solid transparent;transition:all .15s;}
+.setter-name-display:hover{border-color:var(--border);background:var(--off-white);}
+.setter-name-input{font-family:'DM Mono',monospace;font-size:12px;padding:4px 8px;border:1px solid var(--purple);border-radius:6px;outline:none;width:140px;}
+.sync-badge{font-size:10px;padding:3px 8px;border-radius:10px;background:var(--off-white);border:1px solid var(--border);color:var(--muted);display:flex;align-items:center;gap:4px;}
+.sync-badge.syncing{border-color:var(--purple-light);color:var(--purple);}
+.sync-badge.synced{border-color:#b0f0cc;color:var(--green-dark);background:#f0fff6;}
+.sync-badge.local{border-color:#ffd98a;color:var(--amber-dark);background:#fff8e0;}
+.export-logs-btn{font-size:10px;padding:3px 10px;border-radius:10px;background:var(--amber);border:none;color:#000;cursor:pointer;font-family:'DM Mono',monospace;font-weight:500;transition:background .15s;}
+.export-logs-btn:hover{background:var(--amber-dark);color:#fff;}
+.logout-btn{font-size:11px;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:none;transition:all .15s;}
+.logout-btn:hover{color:var(--red);border-color:var(--red);}
+
+/* DASHBOARD */
+#dashboard{padding:20px 24px;max-width:1400px;margin:0 auto;}
+.dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.dash-title{font-size:18px;font-weight:800;}
+.dash-stats{display:flex;gap:10px;}
+.stat-pill{background:#fff;border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+.stat-pill strong{color:var(--text);}
+.priority-section{margin-bottom:24px;}
+.section-header{display:flex;align-items:center;gap:10px;padding:10px 0;margin-bottom:10px;border-bottom:2px solid var(--border);cursor:pointer;user-select:none;}
+.section-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.section-dot.urgent{background:var(--red);}
+.section-dot.scheduled{background:var(--amber);}
+.section-dot.warm{background:var(--green-dark);}
+.section-dot.cold{background:#aaa;}
+.section-title{font-weight:800;font-size:13px;letter-spacing:.5px;}
+.section-count{background:var(--off-white);border:1px solid var(--border);border-radius:10px;padding:1px 8px;font-size:11px;color:var(--muted);}
+.section-chevron{margin-left:auto;color:var(--muted);font-size:11px;transition:transform .2s;}
+.section-body{display:flex;flex-direction:column;gap:8px;}
+.section-body.collapsed{display:none;}
+.section-empty{text-align:center;padding:24px;color:var(--muted);font-size:12px;border:1px dashed var(--border);border-radius:10px;}
+
+/* LEAD CARDS */
+.lead-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.lead-card:hover{box-shadow:0 4px 12px rgba(163,150,220,.15);border-color:var(--purple-light);transform:translateY(-1px);}
+.lead-card.pulsing{animation:pulse 1.5s ease infinite;border-color:var(--red);}
+.lead-card-main{flex:1;min-width:0;}
+.lead-name{font-weight:700;font-size:14px;font-family:'Syne',sans-serif;margin-bottom:3px;}
+.lead-meta{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.lead-status-pill{padding:2px 10px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap;}
+.pill-urgent{background:#fff0f0;color:var(--red);border:1px solid #ffd0d0;}
+.pill-warm{background:#f0fff6;color:var(--green-dark);border:1px solid #b0f0cc;}
+.pill-cold{background:#f5f5f5;color:var(--muted);border:1px solid var(--border);}
+.pill-scheduled{background:#fff8e0;color:var(--amber-dark);border:1px solid #ffd98a;}
+.pill-contacted{background:#f0f0ff;color:var(--purple-dark);border:1px solid var(--purple-light);}
+.callback-badge{font-size:10px;color:var(--amber-dark);background:#fff8e0;border:1px solid #ffd98a;border-radius:6px;padding:2px 7px;}
+.na-badge{font-size:10px;color:var(--red);background:#fff0f0;border:1px solid #ffd0d0;border-radius:6px;padding:2px 7px;}
+
+/* LEAD DETAIL */
+#lead-detail{position:fixed;inset:0;background:var(--off-white);z-index:200;display:flex;flex-direction:column;overflow:hidden;}
+#lead-detail-inner{flex:1;display:flex;overflow:hidden;}
+.detail-topbar{background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 20px;height:52px;flex-shrink:0;}
+.detail-lead-title{font-weight:800;font-size:15px;font-family:'Syne',sans-serif;}
+.timer-display{margin-left:auto;font-size:11px;color:var(--muted);background:var(--off-white);padding:4px 10px;border-radius:8px;border:1px solid var(--border);}
+.timer-display.slow{color:var(--amber-dark);border-color:#ffd98a;}
+
+/* LEFT COL */
+.detail-left{width:25%;min-width:240px;max-width:320px;background:#fff;border-right:1px solid var(--border);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;}
+.detail-section-title{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;}
+.info-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;}
+.info-row a{color:var(--purple);text-decoration:none;}
+.info-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
+.divider{border:none;border-top:1px solid var(--border);}
+.timeline-item{display:flex;gap:10px;align-items:flex-start;font-size:11px;margin-bottom:8px;}
+.timeline-dot{width:6px;height:6px;border-radius:50%;background:var(--purple);flex-shrink:0;margin-top:4px;}
+.timeline-dot.done{background:var(--green-dark);}
+.timeline-dot.today{background:var(--red);}
+.adnan-notes{background:#f8f6ff;border:1px solid var(--purple-light);border-radius:10px;padding:12px;font-size:12px;line-height:1.6;}
+
+/* CENTER COL */
+.detail-center{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;}
+.script-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.script-label{font-size:10px;color:var(--purple);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;}
+.script-text{direction:rtl;text-align:right;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:15px;line-height:2;color:var(--text);white-space:pre-wrap;}
+.script-placeholder{color:var(--purple);font-weight:600;}
+.variant-item{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px;}
+.variant-toggle{width:100%;background:var(--off-white);border:none;padding:10px 14px;text-align:left;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;transition:background .15s;}
+.variant-toggle:hover{background:var(--border);}
+.variant-body{padding:14px;display:none;}
+.variant-body.open{display:block;}
+.variant-text{direction:rtl;text-align:right;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:13px;line-height:1.9;white-space:pre-wrap;}
+
+/* RIGHT COL */
+.detail-right{width:25%;min-width:220px;max-width:300px;background:#fff;border-left:1px solid var(--border);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px;}
+.outcome-btn{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;color:var(--text);display:flex;align-items:center;gap:8px;transition:all .15s;text-align:left;}
+.outcome-btn:hover{border-color:var(--purple-light);background:#f8f6ff;color:var(--purple-dark);}
+.outcome-btn.primary{border-color:var(--purple);color:var(--purple-dark);background:#f8f6ff;}
+.outcome-btn.primary:hover{background:var(--purple);color:#fff;}
+.outcome-sep{border:none;border-top:1px solid var(--border);margin:4px 0;}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+.modal{background:#fff;border-radius:16px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.15);width:460px;max-width:95vw;max-height:90vh;overflow-y:auto;}
+.modal-title{font-weight:800;font-size:16px;font-family:'Syne',sans-serif;margin-bottom:6px;}
+.modal-sub{color:var(--muted);font-size:11px;margin-bottom:20px;}
+.modal-field{margin-bottom:16px;}
+.modal-label{font-size:11px;color:var(--muted);margin-bottom:6px;display:block;font-weight:500;}
+.modal-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Mono',monospace;font-size:13px;outline:none;transition:border-color .15s;background:var(--off-white);}
+.modal-input:focus{border-color:var(--purple);background:#fff;}
+.modal-select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Mono',monospace;font-size:13px;outline:none;background:var(--off-white);cursor:pointer;}
+.checkbox-item{display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-bottom:8px;}
+.checkbox-item input{accent-color:var(--purple);width:14px;height:14px;cursor:pointer;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;}
+.modal-actions .btn{flex:1;justify-content:center;}
+.info-box{background:var(--off-white);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--muted);margin-bottom:16px;}
+.info-box strong{color:var(--text);}
+.warning-box{background:#fff8e0;border:1px solid #ffd98a;border-radius:8px;padding:12px;font-size:12px;color:var(--amber-dark);margin-bottom:16px;}
+.error-box{background:#fff0f0;border:1px solid #ffd0d0;border-radius:8px;padding:12px;font-size:12px;color:var(--red);}
+
+/* TOAST */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--text);color:#fff;padding:10px 16px;border-radius:10px;font-size:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:fadeIn .2s ease;max-width:320px;}
+.toast.success{background:#0a7a3a;}
+.toast.error{background:var(--red-dark);}
+.toast.warning{background:var(--amber-dark);color:#000;}
+
+/* LOADING */
+#loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:300;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+.big-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .8s linear infinite;}
+
+/* NAME PROMPT */
+#name-prompt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:600;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.name-prompt-card{background:#fff;border-radius:16px;padding:32px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.15);text-align:center;}
+
+/* NOTIF BELL */
+.notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid #fff;}
+.notif-wrap{position:relative;display:inline-block;}
+
+/* VIEW TABS */
+.view-tabs{display:flex;gap:0;background:#fff;border-bottom:1px solid var(--border);padding:0 24px;}
+.view-tab{background:transparent;border:none;border-bottom:2px solid transparent;padding:12px 20px;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;margin-bottom:-1px;transition:all .15s;letter-spacing:.3px;}
+.view-tab:hover{color:var(--text);}
+.view-tab.active{color:var(--purple);border-bottom-color:var(--purple);}
+
+/* PERFORMANCE */
+.perf-wrap{padding:20px 24px;max-width:1200px;margin:0 auto;}
+.perf-section{background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.perf-section-title{font-weight:800;font-size:14px;font-family:'Syne',sans-serif;margin-bottom:16px;}
+.perf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;}
+.perf-stat{background:var(--off-white);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+.perf-num{font-size:26px;font-weight:800;font-family:'Syne',sans-serif;margin-bottom:4px;line-height:1;}
+.perf-label{font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;line-height:1.3;}
+.flag-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;font-size:12px;margin-bottom:6px;}
+.flag-red{background:#fff0f0;border:1px solid #ffd0d0;}
+.flag-amber{background:#fff8e0;border:1px solid #ffd98a;}
+.flag-green{background:#f0fff6;border:1px solid #b0f0cc;}
+.flag-count{font-size:20px;font-weight:800;font-family:'Syne',sans-serif;min-width:32px;text-align:center;}
+.flag-red .flag-count{color:var(--red);}
+.flag-amber .flag-count{color:var(--amber-dark);}
+.flag-green .flag-count{color:var(--green-dark);}
+.flag-label{font-weight:600;flex:1;}
+.flag-detail{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px;}
+.lb-row{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;}
+.lb-row.top{background:#f8f6ff;border-color:var(--purple-light);}
+.lb-rank{font-size:22px;width:32px;text-align:center;}
+.lb-name{flex:1;font-weight:700;font-family:'Syne',sans-serif;}
+.lb-stats{display:flex;gap:20px;}
+.lb-stat{text-align:center;}
+.lb-stat-num{font-size:18px;font-weight:800;font-family:'Syne',sans-serif;}
+.lb-stat-label{font-size:10px;color:var(--muted);}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card fade-in">
+    <div class="login-logo">ThreeUp</div>
+    <div class="login-sub">Setter Dashboard · Daily Command Center</div>
+    <input type="password" id="login-pw" class="login-input" placeholder="••••••••" autocomplete="current-password">
+    <div class="login-error" id="login-error"></div>
+    <button class="btn btn-primary login-btn" onclick="doLogin()">Enter Dashboard</button>
+  </div>
+</div>
+
+<!-- NAME PROMPT -->
+<div id="name-prompt-overlay" class="hidden">
+  <div class="name-prompt-card fade-in">
+    <div style="font-weight:800;font-size:18px;font-family:'Syne',sans-serif;margin-bottom:8px;">What's your name?</div>
+    <div style="color:var(--muted);font-size:12px;margin-bottom:20px;">Used in your activity log and reports.</div>
+    <input type="text" id="name-prompt-input" class="login-input" style="letter-spacing:normal;font-size:14px;" placeholder="Your first name">
+    <button class="btn btn-primary" style="width:100%;margin-top:8px;justify-content:center;" onclick="saveSetterName()">Continue</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <div id="topbar">
+    <div class="topbar-logo">ThreeUp</div>
+    <div class="topbar-date" id="topbar-date"></div>
+    <div class="topbar-right">
+      <div class="sync-badge local" id="sync-badge">📥 Logs saved locally</div>
+      <button class="export-logs-btn" onclick="exportLocalLogs()" title="Download activity log as CSV">⬇ Export Logs</button>
+      <span class="setter-name-display" id="setter-name-display" onclick="editSetterName()" title="Click to edit"></span>
+      <input type="text" id="setter-name-input" class="setter-name-input hidden" onblur="confirmSetterName()" onkeydown="if(event.key==='Enter')confirmSetterName()">
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div id="dashboard-view">
+    <div class="view-tabs">
+      <button class="view-tab active" id="tab-btn-calls" onclick="switchTab('calls')">📋 Call List</button>
+      <button class="view-tab" id="tab-btn-performance" onclick="switchTab('performance')">📊 Performance</button>
+    </div>
+    <div id="tab-calls">
+    <div id="dashboard">
+      <div class="dash-header">
+        <div class="dash-title">Call List</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div class="dash-stats" id="dash-stats"></div>
+          <div style="font-size:11px;color:var(--muted);" id="last-refresh-label"></div>
+          <button class="btn btn-ghost btn-sm" onclick="refreshLeads()" id="refresh-btn">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="priority-section">
+        <div class="section-header" onclick="toggleSection('urgent')">
+          <div class="section-dot urgent"></div>
+          <div class="section-title">🔴 URGENT — MUST CALL NOW</div>
+          <div class="section-count" id="urgent-count">0</div>
+          <div class="section-chevron" id="urgent-chevron">▼</div>
+        </div>
+        <div class="section-body" id="urgent-body"></div>
+      </div>
+      <div class="priority-section">
+        <div class="section-header" onclick="toggleSection('scheduled')">
+          <div class="section-dot scheduled"></div>
+          <div class="section-title">🟡 SCHEDULED — LATER TODAY</div>
+          <div class="section-count" id="scheduled-count">0</div>
+          <div class="section-chevron" id="scheduled-chevron">▼</div>
+        </div>
+        <div class="section-body" id="scheduled-body"></div>
+      </div>
+      <div class="priority-section">
+        <div class="section-header" onclick="toggleSection('warm')">
+          <div class="section-dot warm"></div>
+          <div class="section-title">🟢 WARM — FOLLOW UP THIS WEEK</div>
+          <div class="section-count" id="warm-count">0</div>
+          <div class="section-chevron" id="warm-chevron">▼</div>
+        </div>
+        <div class="section-body" id="warm-body"></div>
+      </div>
+      <div class="priority-section">
+        <div class="section-header" onclick="toggleSection('cold')">
+          <div class="section-dot cold"></div>
+          <div class="section-title">⚪ COLD — RE-ENGAGE</div>
+          <div class="section-count" id="cold-count">0</div>
+          <div class="section-chevron" id="cold-chevron">▼</div>
+        </div>
+        <div class="section-body" id="cold-body"></div>
+      </div>
+    </div>
+    </div><!-- /#tab-calls -->
+    <div id="tab-performance" class="hidden"></div>
+  </div>
+
+  <!-- LEAD DETAIL -->
+  <div id="lead-detail" class="hidden">
+    <div class="detail-topbar">
+      <button class="btn btn-ghost btn-sm" onclick="closeLeadDetail()">← Back</button>
+      <div class="detail-lead-title" id="detail-lead-title"></div>
+      <div id="detail-stage-badge" class="lead-status-pill" style="font-size:11px;"></div>
+      <div class="timer-display" id="timer-display">00:00</div>
+    </div>
+    <div id="lead-detail-inner">
+      <div class="detail-left" id="detail-left"></div>
+      <div class="detail-center" id="detail-center"></div>
+      <div class="detail-right" id="detail-right"></div>
+    </div>
+  </div>
+</div>
+
+<div id="loading-overlay" class="hidden">
+  <div class="big-spinner"></div>
+  <div style="font-size:13px;color:var(--muted);" id="loading-text">Loading...</div>
+</div>
+
+<div id="modal-container"></div>
+<div id="toast-container"></div>
+
+<script>
+'use strict';
+
+/* ── CONFIG ── */
+const CFG = {
+  ghlKey: 'pit-cc34a5f9-fe31-42ff-acbc-c9cf72715da1',
+  ghlLoc: 'ck8gYVHUEnLEIg0OVsLd',
+  ghlBase: 'https://services.leadconnectorhq.com',
+  sheetId: '12KEc1_CIkAHpfA74y660zsWSGnkbcSoltcSosuk4smA',
+  sheetTab: 'ActivityLog',
+  saEmail: 'threeup-agent@threeup-cao-agent.iam.gserviceaccount.com',
+  setterPw: 'setter3up2026',
+  fields: {
+    lead_source:         'cqMoQkgXs97QE93t3kWj',
+    clinic_specialty:    'S4UO0tXC5s38qpsET42Z',
+    lead_city:           'rUxALKB5pbMjKMSqePCp',
+    lost_reason:         '1Gq0IaHtZqOJkDKlpR11',
+    objection:           '5tluAbbNpCvyrfiOSEIu',
+    monthly_value:       'fiJc1wo9y6BYsXvJ4L5c',
+    contacted:           'F2cHDxn8Dv4BgF5FnevI',
+    meeting_booked:      '2Ab0XqGF4Zk2kwVlMaah',
+    meeting_done:        'bTvbFAG5L6yeHBxlaxUt',
+    site_visit_booked:   'YIqfpgoxtz4arM39sc7f',
+    site_visit_done:     '8NoJirF7iHg8oUD021Q4',
+    closed_won:          'DIufdodQH2J57Yj5wEKd',
+    discovery_call_date: 'V76zZQ62VoIGuPCgxcF1',
+    site_visit_date:     'RBW58oCC7EKL4YJ2MMtA',
+    if_not_closed_why:   '3IY7xFbYOjscqPMyBpZ6'
+  }
+};
+
+const PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCbAXZOpzz/vtj1
+0rquiiagzaeQtDJ30NJMCq8CmP3PLHgEFFu9MjhuUKoLbObNY6S5JpTpbUHu02DV
+wkTDLc7ElhBAwHjSEemzPp3hURuE/JQIcJMRdQg1OMmvgl34iW9HF2rPLCt4M1hk
+c61ZUt6ic0rEBZn7CmrycXcBevVdzTB14Um7arwOrtjUIoEc8M96lCSP87WF4Kuo
+5zQeGo9lV/9ucbvn4ej2GGiC6ag+lyh965vKY+PpmcxH2vLz6SDUokVm5BkDFLje
+yZcsdHTy0UzzIUqSQ+oTFE8HV+ilkhJLwHRkYVf4JqsR+s5dH+09AMhBgkcJvlTY
+RkSJ+plLAgMBAAECggEANwj03YZJhTBYzics+y23+14pgZpJVPtCv5cHfm+dpkJO
+tnwX+nvrR1fCmF3pMMGRSd/l/V86irZoal0Ylwgbovb4/FSaUVPk2yx/V/G5SKV5
+VenKfedEq8jm6zbpcIYziVVKKhavtHTejIP5534h6CHxSNoISvbu8/fPXiovFkdn
+ydhfA1eAR0MCuAlbsSL8BD+ugvJ4wq3etZa5hHuANCKGek76I9xcTJ39QCPkIBIS
+CP7JcCJ+AJF9cXlRmJOUGOvx9dBp4dBvrzIry7QnUtm42j6mhwZnPkidAg67iWxK
+GYUAO1YeUEtMbTPtLtV80tG7upVuBkyQ6dXwYuawQKBgQDNK865XNA3b+EqGbyL
+U4QXcg8rFBqTiGQk3xB8VPnOFp2tdkXjhEYd0wW6dVY1LYGDGyaVpiqrk7MvZLtc
+yPtL8hPjPLt+jjw8s7aYP2ZWLW+/HMm0y0U4xeUedPbHzDEGwIwKTr275Li1KKOR
+jd/CQ0vYANP33tGAalwVGisiYQKBgQDBaBsGnqDQszsErGGVmp2hiwliJcrmU3J/
+6EPMmUUkMgQlcnY798OHtRtwUhq5ZsOdoPyOXb3SonTo1S/QPHPyV5p8l/O7cr2l
+cJ4wsDdJ2peK/8qOVSviht4/HqecLVuBZZDP+5J0GZKGh+uMOa5l5NhOgKzZm+zW
+OWsv/PKzKwKBgF6x4W/cTp3HnXz48/S6TzUjB60yUjHVuaLq8YjxD3r3JT9yXz9r
+RZFuXC57CZbxsdz5Iw3e68LVINa2/2MLwDCFQniXB1KaA2Ng7t3GJU2RGwpyFwbC
+6ugRLnaoNV5x+A7Nv9TiEuAt6LJ0V0pO2P+oX9EKUMsOpFNIw8dZlJ8BAoGAJSqO
+Vv1QxgpLQyClOAyYUhzX1saQcSaEEFRgAwdJJCWAannOgsOgDYoeFb2RaSN4X+g5
+4FnfSoTxlnSxVYDofx+ajmrc6Z6pFwvHOnACj+yzxoBVOnjfkA5+0v5fE0IcHYeZ
+Bn6/rBPl9nhUKYREIUySzLMphD/UiW5LTNN9CDUCgYBlHX4N7VlXMY3AsRe9er67
+5o79RzCl3UwR5F15KdJm/v62AVlLyhJGzyQ/ypaFibL1gaQBfbLsOmj+TnLt3gYP
+Ffz3XYS86kXQtEfkhEl3LAI8cSnXfFxZCf6/xKvo3OIrkeKdjelezZ7C+9Bp7Mix
+ytFijeRs0yqS17QxczlwFw==
+-----END PRIVATE KEY-----`;
+
+/* ── STATE ── */
+let allContacts = [];
+let currentContact = null;
+let leadOpenedAt = null;
+let timerInterval = null;
+let syncLoopId = null;
+let refreshLoopId = null;
+let cbCheckId = null;
+let googleToken = null;
+let googleTokenExp = 0;
+let sectionOpen = { urgent:true, scheduled:true, warm:true, cold:true };
+
+/* ══════════════════════════════════════
+   ACTIVITY LOG — LOCAL STORAGE ONLY
+   (Sheet sync requires server-side auth;
+    use Export Logs → import to admin.html)
+══════════════════════════════════════ */
+function updateSyncBadge() {
+  const badge = document.getElementById('sync-badge');
+  if (!badge) return;
+  const logs = JSON.parse(localStorage.getItem('activityLog') || '[]');
+  const unsynced = logs.filter(l => !l.synced).length;
+  badge.className = 'sync-badge local';
+  badge.textContent = unsynced > 0
+    ? `📥 ${unsynced} log${unsynced>1?'s':''} saved locally`
+    : '📥 Logs saved locally';
+}
+
+function exportLocalLogs() {
+  const logs = JSON.parse(localStorage.getItem('activityLog') || '[]');
+  if (!logs.length) { toast('No logs to export yet','warning'); return; }
+  const headers = ['Timestamp','Setter','Lead ID','Lead Name','Action','Time On Lead (s)','Suspicious','Flag Reason','Metadata'];
+  const rows = logs.map(l => [
+    l.timestamp||'', l.setter||'', l.leadId||'', l.leadName||'',
+    l.action||'', l.timeOnLead||0, l.suspicious?'YES':'NO',
+    l.reason||'', JSON.stringify(l.metadata||{})
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const d = new Date();
+  a.href = url;
+  a.download = `threeup-setter-log-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`Exported ${logs.length} log entries as CSV`, 'success');
+}
+
+function startSyncLoop() {
+  if (syncLoopId) clearInterval(syncLoopId);
+  // Update badge every 30s to reflect new log count
+  syncLoopId = setInterval(updateSyncBadge, 30000);
+  updateSyncBadge();
+}
+
+/* ── AUTO-REFRESH (every 5 min) ── */
+function startRefreshLoop() {
+  if (refreshLoopId) clearInterval(refreshLoopId);
+  refreshLoopId = setInterval(() => {
+    if (!currentContact) refreshLeads();
+  }, 5 * 60 * 1000);
+}
+
+/* ── CALLBACK CHECKER (every 60s) ── */
+function startCallbackChecker() {
+  if (cbCheckId) clearInterval(cbCheckId);
+  cbCheckId = setInterval(checkUpcomingCallbacks, 60000);
+}
+
+function checkUpcomingCallbacks() {
+  const now = new Date();
+  const soon = new Date(now.getTime() + 15 * 60 * 1000); // +15 min
+  const urgent = [];
+
+  for (const c of allContacts) {
+    const cb = getCallbackTime(c);
+    if (!cb) continue;
+    if (cb >= now && cb <= soon) urgent.push(c);
+  }
+
+  for (const c of urgent) {
+    const name = getContactName(c);
+    const cb = getCallbackTime(c);
+    const mins = Math.round((cb - now) / 60000);
+
+    // Browser notification
+    if (Notification.permission === 'granted') {
+      new Notification(`ThreeUp: Callback Due`, {
+        body: `Dr. ${name} — callback in ${mins} minute${mins !== 1 ? 's' : ''}`,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23A396DC"/></svg>'
+      });
+    }
+
+    // Flash card
+    const cards = document.querySelectorAll('.lead-card');
+    cards.forEach(el => {
+      if (el.dataset.id === c.id) el.classList.add('pulsing');
+    });
+    toast(`📅 Callback: ${name} in ${mins} min`, 'warning');
+  }
+}
+
+function requestNotifications() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+/* ══════════════════════════════════════
+   GHL API
+══════════════════════════════════════ */
+const GHL_HEADERS = () => ({
+  'Authorization': `Bearer ${CFG.ghlKey}`,
+  'Version': '2021-07-28',
+  'Content-Type': 'application/json'
+});
+
+async function fetchAllCleanedContacts() {
+  const contacts = [];
+  let page = 1;
+  let hasMore = true;
+  while (hasMore) {
+    const res = await fetch(
+      `${CFG.ghlBase}/contacts/?locationId=${CFG.ghlLoc}&limit=100&page=${page}`,
+      {headers: GHL_HEADERS()}
+    );
+    if (!res.ok) throw new Error(`GHL fetch failed: ${res.status}`);
+    const data = await res.json();
+    const list = data.contacts || [];
+    const cleaned = list.filter(c => c.tags && c.tags.includes('cleanup-done'));
+    contacts.push(...cleaned);
+    if (list.length < 100 || contacts.length >= (data.meta?.total || 0)) hasMore = false;
+    page++;
+  }
+  return contacts;
+}
+
+async function ghlUpdateContact(contactId, body) {
+  const res = await fetch(`${CFG.ghlBase}/contacts/${contactId}`, {
+    method: 'PUT', headers: GHL_HEADERS(), body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`GHL update failed (${res.status}): ${txt}`);
+  }
+  return res.json();
+}
+
+async function ghlAddTag(contactId, tag) {
+  const res = await fetch(`${CFG.ghlBase}/contacts/${contactId}/tags`, {
+    method: 'POST', headers: GHL_HEADERS(), body: JSON.stringify({tags:[tag]})
+  });
+  if (!res.ok) throw new Error(`Tag add failed (${res.status})`);
+  return res.json();
+}
+
+async function ghlRemoveTag(contactId, tag) {
+  const res = await fetch(`${CFG.ghlBase}/contacts/${contactId}/tags`, {
+    method: 'DELETE', headers: GHL_HEADERS(), body: JSON.stringify({tags:[tag]})
+  });
+  if (!res.ok) throw new Error(`Tag remove failed (${res.status})`);
+}
+
+async function ghlRefreshContact(contactId) {
+  try {
+    const res = await fetch(`${CFG.ghlBase}/contacts/${contactId}`, {headers: GHL_HEADERS()});
+    if (!res.ok) return;
+    const data = await res.json();
+    const fresh = data.contact || data;
+    const idx = allContacts.findIndex(c => c.id === contactId);
+    if (idx >= 0) allContacts[idx] = fresh;
+  } catch(e) { /* silent */ }
+}
+
+async function createCalendarAppointment(contactId, contactName, appointmentType, dateTime) {
+  const calendarIds = {
+    discovery: 'pzB13VUDKkKJfQrLCCR4',
+    siteVisit:  'pzB13VUDKkKJfQrLCCR4',
+    callback:   'YK4yND8oH0ArNwLi1EWY'
+  };
+  const titles = {
+    discovery: `Discovery Call - ${contactName}`,
+    siteVisit:  `Site Visit - ${contactName}`,
+    callback:   `Callback - ${contactName}`
+  };
+  const startTime = new Date(dateTime).toISOString();
+  const endTime   = new Date(new Date(dateTime).getTime() + 30 * 60000).toISOString();
+
+  const body = {
+    calendarId: calendarIds[appointmentType],
+    selectedTimezone: 'Asia/Amman',
+    startTime,
+    endTime,
+    title: titles[appointmentType] || `Appointment - ${contactName}`,
+    appointmentStatus: 'confirmed',
+    address: appointmentType === 'siteVisit' ? 'On-site at clinic' : 'Online Meeting',
+    ignoreDateRange: false,
+    toNotify: true,
+    contactId
+  };
+
+  const response = await fetch(`${CFG.ghlBase}/calendars/events/appointments`, {
+    method: 'POST',
+    headers: GHL_HEADERS(),
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Calendar appointment error:', error);
+    throw new Error('Failed to create calendar appointment');
+  }
+
+  return await response.json();
+}
+
+/* ══════════════════════════════════════
+   AUTH
+══════════════════════════════════════ */
+document.getElementById('login-pw').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function doLogin() {
+  const pw = document.getElementById('login-pw').value.trim();
+  if (pw === CFG.setterPw) {
+    localStorage.setItem('auth', JSON.stringify({authenticated:true, role:'setter'}));
+    showApp();
+  } else {
+    const el = document.getElementById('login-pw');
+    el.classList.add('shake');
+    document.getElementById('login-error').textContent = 'Incorrect password.';
+    setTimeout(() => el.classList.remove('shake'), 500);
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('auth');
+  clearInterval(syncLoopId); clearInterval(refreshLoopId); clearInterval(cbCheckId); clearInterval(timerInterval);
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-pw').value = '';
+  document.getElementById('login-error').textContent = '';
+}
+
+function showApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  updateTopbarDate();
+  const name = localStorage.getItem('setterName');
+  if (!name) {
+    document.getElementById('name-prompt-overlay').classList.remove('hidden');
+  } else {
+    document.getElementById('setter-name-display').textContent = name;
+    initApp();
+  }
+}
+
+function saveSetterName() {
+  const v = document.getElementById('name-prompt-input').value.trim();
+  if (!v) return;
+  localStorage.setItem('setterName', v);
+  document.getElementById('setter-name-display').textContent = v;
+  document.getElementById('name-prompt-overlay').classList.add('hidden');
+  initApp();
+}
+document.getElementById('name-prompt-input').addEventListener('keydown', e => { if(e.key==='Enter') saveSetterName(); });
+
+function editSetterName() {
+  const inp = document.getElementById('setter-name-input');
+  inp.value = getSetterName();
+  document.getElementById('setter-name-display').classList.add('hidden');
+  inp.classList.remove('hidden');
+  inp.focus();
+}
+function confirmSetterName() {
+  const v = document.getElementById('setter-name-input').value.trim();
+  if (v) localStorage.setItem('setterName', v);
+  document.getElementById('setter-name-display').textContent = getSetterName();
+  document.getElementById('setter-name-input').classList.add('hidden');
+  document.getElementById('setter-name-display').classList.remove('hidden');
+}
+function getSetterName() { return localStorage.getItem('setterName') || 'Setter'; }
+
+async function initApp() {
+  requestNotifications();
+  startSyncLoop();
+  startRefreshLoop();
+  startCallbackChecker();
+  await refreshLeads();
+}
+
+/* ══════════════════════════════════════
+   DASHBOARD
+══════════════════════════════════════ */
+async function refreshLeads() {
+  showLoading('Fetching contacts from GHL...');
+  const btn = document.getElementById('refresh-btn');
+  if (btn) btn.disabled = true;
+  try {
+    allContacts = await fetchAllCleanedContacts();
+    renderDashboard(allContacts);
+    document.getElementById('last-refresh-label').textContent =
+      `Last refresh: ${fmt12hr(new Date())}`;
+    toast(`Loaded ${allContacts.length} contacts`, 'success');
+  } catch(e) {
+    toast('Failed to load contacts: ' + e.message, 'error');
+    renderDashboard([]);
+  } finally {
+    hideLoading();
+    if (btn) btn.disabled = false;
+  }
+}
+
+function updateTopbarDate() {
+  const now = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('topbar-date').textContent =
+    `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+}
+
+/* ── CONTACT HELPERS ── */
+function getFieldValue(c, fname) {
+  const id = CFG.fields[fname];
+  const cfs = c.customFields || c.customField || [];
+  const m = cfs.find(f => f.id === id || f.key === fname);
+  return m ? (m.value || m.field_value || null) : null;
+}
+function hasTag(c, tag) { return c.tags && c.tags.includes(tag); }
+function getNoAnswerCount(c) {
+  const cfs = c.customFields || c.customField || [];
+  const f = cfs.find(f => f.key === 'no_answer_count');
+  return f ? (parseInt(f.value || f.field_value || '0') || 0) : 0;
+}
+function getNoAnswerFieldId(c) {
+  const cfs = c.customFields || c.customField || [];
+  const f = cfs.find(f => f.key === 'no_answer_count');
+  return f ? f.id : null;
+}
+function getContactName(c) {
+  return c.contactName || `${c.firstName||''} ${c.lastName||''}`.trim() || 'Unknown';
+}
+function getDaysSince(ds) {
+  if (!ds) return 9999;
+  return Math.floor((Date.now() - new Date(ds)) / 86400000);
+}
+function getLastTouch(c) {
+  return [c.lastActivityDate, c.dateUpdated, c.dateAdded].filter(Boolean).sort().reverse()[0];
+}
+function getDaysSinceLastTouch(c) { return getDaysSince(getLastTouch(c)); }
+function getCallbackTime(c) {
+  if (!c.tags) return null;
+  const t = c.tags.find(t => t.startsWith('callback-scheduled-'));
+  if (!t) return null;
+  const raw = t.replace('callback-scheduled-','');
+  // Format: YYYY-MM-DD-HH-MM
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})$/);
+  if (m) return new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00`);
+  return null;
+}
+function getNoAnswerRetryDate(c) {
+  if (!c.tags) return null;
+  const t = c.tags.find(t => t.startsWith('no-answer-retry-'));
+  if (!t) return null;
+  return new Date(t.replace('no-answer-retry-','') + 'T00:00:00');
+}
+
+/* ── STAGE DETECTION ── */
+function getStage(c) {
+  const tags = c.tags || [];
+  if (tags.includes('lost')) return 'lost';
+  if (tags.includes('archived')) return 'archived';
+  if (tags.includes('free-trial-sequence')) return 'free-trial';
+  if (getFieldValue(c,'closed_won')==='yes' || tags.includes('closed-won')) return 'closed';
+  if (getFieldValue(c,'site_visit_done')==='yes' || tags.includes('site-visit-done')) return 'site-done';
+  if (getFieldValue(c,'site_visit_booked')==='yes' || tags.includes('site-visit')) return 'site-booked';
+  if (getFieldValue(c,'meeting_done')==='yes' || tags.includes('meeting-done')) return 'meeting-done';
+  if (getFieldValue(c,'meeting_booked')==='yes' || tags.includes('meeting-booked')) return 'meeting-booked';
+  if (getFieldValue(c,'contacted')==='yes' || tags.includes('contacted')) return 'contacted';
+  return 'new-lead';
+}
+
+/* ── PRIORITY CLASSIFICATION ── */
+function classifyContact(c) {
+  const stage = getStage(c);
+  if (['closed','lost','archived'].includes(stage)) return null;
+
+  const now = new Date();
+  const today = now.toDateString();
+  const daysSince = getDaysSinceLastTouch(c);
+  const naCount = getNoAnswerCount(c);
+  const cbTime = getCallbackTime(c);
+  const retryDate = getNoAnswerRetryDate(c);
+  const discDate = getFieldValue(c,'discovery_call_date');
+  const daysSinceDisc = getDaysSince(discDate);
+
+  // Callback today and past due
+  if (cbTime && cbTime.toDateString() === today && cbTime <= now)
+    return {priority:'urgent', reason:'Callback overdue', cbTime};
+  // Callback today but not yet
+  if (cbTime && cbTime.toDateString() === today && cbTime > now)
+    return {priority:'scheduled', reason:`Callback ${fmt12hr(cbTime)}`, cbTime};
+  // Missed callback (past day, not today)
+  if (cbTime && cbTime < now && cbTime.toDateString() !== today)
+    return {priority:'urgent', reason:'Missed callback', cbTime};
+  // No-answer retry due today
+  if (retryDate && retryDate.toDateString() === today)
+    return {priority:'urgent', reason:`Retry #${naCount+1}/6`, retryDate};
+  // Post-discovery >5d no site visit
+  if (stage==='meeting-done' && daysSinceDisc > 5)
+    return {priority:'urgent', reason:`${daysSinceDisc}d post-discovery`, daysSince};
+  // Free trial / 6+ NAs
+  if (stage==='free-trial' || naCount >= 6)
+    return {priority:'cold', reason:'Free trial sequence', daysSince};
+  // 60+ days cold
+  if (daysSince >= 60)
+    return {priority:'cold', reason:`${daysSince}d cold`, daysSince};
+  // New lead <7d not contacted
+  if (stage==='new-lead' && daysSince < 7)
+    return {priority:'warm', reason:`New lead ${daysSince}d ago`, daysSince};
+  // Contacted, no meeting
+  if (stage==='contacted' && !getFieldValue(c,'meeting_booked'))
+    return {priority:'warm', reason:'Needs discovery booking', daysSince};
+  // Post-discovery <5d
+  if (stage==='meeting-done' && daysSinceDisc <= 5)
+    return {priority:'warm', reason:`${daysSinceDisc}d post-discovery`, daysSince};
+  // Anything else actionable
+  if (['new-lead','contacted','meeting-booked','meeting-done'].includes(stage))
+    return {priority:'warm', reason:`Follow up (${daysSince}d)`, daysSince};
+  return {priority:'cold', reason:`Stale (${daysSince}d)`, daysSince};
+}
+
+/* ── RENDER DASHBOARD ── */
+function renderDashboard(contacts) {
+  const buckets = {urgent:[], scheduled:[], warm:[], cold:[]};
+  for (const c of contacts) {
+    const cls = classifyContact(c);
+    if (!cls) continue;
+    c._priority = cls.priority;
+    c._reason = cls.reason;
+    c._cbTime = cls.cbTime || null;
+    c._daysSince = cls.daysSince || getDaysSinceLastTouch(c);
+    buckets[cls.priority].push(c);
+  }
+
+  buckets.urgent.sort((a,b) => {
+    if (a._cbTime && b._cbTime) return a._cbTime - b._cbTime;
+    if (a._cbTime) return -1; if (b._cbTime) return 1;
+    return b._daysSince - a._daysSince;
+  });
+  buckets.scheduled.sort((a,b) => (a._cbTime||0) - (b._cbTime||0));
+  buckets.warm.sort((a,b) => a._daysSince - b._daysSince);
+  buckets.cold.sort((a,b) => b._daysSince - a._daysSince);
+
+  const total = Object.values(buckets).reduce((s,b) => s+b.length, 0);
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-pill"><span style="color:var(--red)">●</span><strong>${buckets.urgent.length}</strong> urgent</div>
+    <div class="stat-pill"><strong>${total}</strong> total</div>
+  `;
+
+  for (const [key, arr] of Object.entries(buckets)) {
+    document.getElementById(`${key}-count`).textContent = arr.length;
+    const body = document.getElementById(`${key}-body`);
+    body.innerHTML = arr.length
+      ? arr.map(c => renderLeadCard(c)).join('')
+      : `<div class="section-empty">No leads in this category</div>`;
+  }
+}
+
+function renderLeadCard(c) {
+  const name = getContactName(c);
+  const spec = getFieldValue(c,'clinic_specialty') || '';
+  const city = getFieldValue(c,'lead_city') || '';
+  const src = getFieldValue(c,'lead_source') || '';
+  const stage = getStage(c);
+  const naCount = getNoAnswerCount(c);
+  const srcIcons = {meta_ad:'📘', google:'🔍', referral:'🤝', website:'🌐'};
+  const srcIcon = srcIcons[src] || '📋';
+  const stageMap = {
+    'new-lead':{'label':'New Lead','cls':'pill-warm'},
+    'contacted':{'label':'Contacted','cls':'pill-contacted'},
+    'meeting-booked':{'label':'Discovery Booked','cls':'pill-scheduled'},
+    'meeting-done':{'label':'Discovery Done','cls':'pill-contacted'},
+    'site-booked':{'label':'Site Visit Booked','cls':'pill-scheduled'},
+    'free-trial':{'label':'Free Trial','cls':'pill-cold'}
+  };
+  const sm = stageMap[stage] || {label:stage, cls:'pill-cold'};
+  const pri = c._priority;
+  const priCls = {urgent:'pill-urgent',scheduled:'pill-scheduled',warm:'pill-warm',cold:'pill-cold'}[pri]||'';
+  const cbBadge = c._cbTime ? `<span class="callback-badge">📅 ${fmt12hr(c._cbTime)}</span>` : '';
+  const naBadge = naCount > 0 ? `<span class="na-badge">↩ ${naCount}/6</span>` : '';
+  const touch = c._daysSince >= 9999 ? '—' : c._daysSince === 0 ? 'Today' : `${c._daysSince}d ago`;
+  const meta = [spec,city].filter(Boolean).join(' · ');
+
+  return `<div class="lead-card fade-in" data-id="${c.id}" onclick="openLead('${c.id}')">
+    <div class="lead-card-main">
+      <div class="lead-name">${esc(name)}</div>
+      <div class="lead-meta">
+        ${meta?`<span>${esc(meta)}</span><span>·</span>`:''}
+        <span>${srcIcon} ${esc(src||'—')}</span><span>·</span>
+        <span>${touch}</span>
+        ${cbBadge}${naBadge}
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="lead-status-pill ${sm.cls}">${sm.label}</span>
+      <span class="lead-status-pill ${priCls}" style="font-size:9px;">${esc(c._reason||'')}</span>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openLead('${c.id}')">OPEN</button>
+  </div>`;
+}
+
+/* ══════════════════════════════════════
+   LEAD DETAIL
+══════════════════════════════════════ */
+function openLead(id) {
+  const c = allContacts.find(x => x.id === id);
+  if (!c) { toast('Contact not found','error'); return; }
+  currentContact = c;
+  leadOpenedAt = Date.now();
+  document.getElementById('dashboard-view').classList.add('hidden');
+  document.getElementById('lead-detail').classList.remove('hidden');
+  renderLeadDetail(c);
+  startTimer();
+  logAction({action:'lead_opened', leadId:c.id, leadName:getContactName(c), timeOnLead:0, suspicious:false, reason:null, metadata:{}});
+}
+
+function closeLeadDetail() {
+  clearInterval(timerInterval); timerInterval=null;
+  currentContact=null; leadOpenedAt=null;
+  document.getElementById('lead-detail').classList.add('hidden');
+  document.getElementById('dashboard-view').classList.remove('hidden');
+}
+
+function renderLeadDetail(c) {
+  const name = getContactName(c);
+  const stage = getStage(c);
+  const stageMap = {
+    'new-lead':{'label':'New Lead','cls':'pill-warm'},
+    'contacted':{'label':'Contacted','cls':'pill-contacted'},
+    'meeting-booked':{'label':'Discovery Booked','cls':'pill-scheduled'},
+    'meeting-done':{'label':'Discovery Done','cls':'pill-contacted'},
+    'site-booked':{'label':'Site Visit Booked','cls':'pill-scheduled'},
+    'free-trial':{'label':'Free Trial Sequence','cls':'pill-cold'}
+  };
+  const sm = stageMap[stage] || {label:stage, cls:'pill-cold'};
+  document.getElementById('detail-lead-title').textContent = name;
+  const badge = document.getElementById('detail-stage-badge');
+  badge.textContent = sm.label; badge.className = `lead-status-pill ${sm.cls}`;
+  renderDetailLeft(c); renderDetailCenter(c); renderDetailRight(c, stage);
+}
+
+function renderDetailLeft(c) {
+  const name = getContactName(c);
+  const phone = c.phone || '';
+  const spec = getFieldValue(c,'clinic_specialty') || '—';
+  const city = getFieldValue(c,'lead_city') || '—';
+  const src  = getFieldValue(c,'lead_source') || '—';
+  const notes = getFieldValue(c,'if_not_closed_why');
+  const discDate = getFieldValue(c,'discovery_call_date');
+  const svDate = getFieldValue(c,'site_visit_date');
+  const cbTime = getCallbackTime(c);
+  const added = c.dateAdded ? fmtDate(new Date(c.dateAdded)) : '—';
+
+  const timeline = [];
+  if (c.dateAdded) timeline.push({text:'Lead created', date:fmtDate(new Date(c.dateAdded)), done:true});
+  if (getFieldValue(c,'contacted')==='yes') timeline.push({text:'First contact made', date:'—', done:true});
+  if (discDate) timeline.push({text:'Discovery call booked', date:fmtDate(new Date(discDate)), done:true});
+  if (getFieldValue(c,'meeting_done')==='yes') timeline.push({text:'Discovery completed', date:discDate?fmtDate(new Date(discDate)):'—', done:true});
+  if (svDate) timeline.push({text:'Site visit booked', date:fmtDate(new Date(svDate)), done:true});
+  if (getFieldValue(c,'site_visit_done')==='yes') timeline.push({text:'Site visit done', date:svDate?fmtDate(new Date(svDate)):'—', done:true});
+
+  document.getElementById('detail-left').innerHTML = `
+    <div>
+      <div style="font-weight:800;font-size:17px;font-family:'Syne',sans-serif;margin-bottom:4px;">${esc(name)}</div>
+      ${c.companyName?`<div style="font-size:12px;color:var(--muted)">${esc(c.companyName)}</div>`:''}
+    </div>
+    <hr class="divider">
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div class="info-row"><span class="info-icon">📱</span>${phone?`<a href="tel:${phone}">${esc(phone)}</a>`:'—'}</div>
+      <div class="info-row"><span class="info-icon">📍</span>${esc(spec)} · ${esc(city)}</div>
+      <div class="info-row"><span class="info-icon">🎯</span>${esc(src)} (${added})</div>
+      ${cbTime?`<div class="info-row"><span class="info-icon">⏰</span>Callback: ${fmt12hr(cbTime)} ${fmtDate(cbTime)}</div>`:''}
+    </div>
+    <hr class="divider">
+    <div>
+      <div class="detail-section-title">TIMELINE</div>
+      ${timeline.map(t=>`
+        <div class="timeline-item">
+          <div class="timeline-dot done"></div>
+          <div><div style="font-size:11px;">${esc(t.text)}</div><div style="font-size:10px;color:var(--muted)">${t.date}</div></div>
+        </div>`).join('')}
+      <div class="timeline-item">
+        <div class="timeline-dot today"></div>
+        <div style="font-size:11px;color:var(--red);font-weight:600;">TODAY: Action required</div>
+      </div>
+    </div>
+    ${notes?`<hr class="divider"><div><div class="detail-section-title">ADNAN'S NOTES</div><div class="adnan-notes">${esc(notes)}</div></div>`:''}
+  `;
+}
+
+function renderDetailCenter(c) {
+  const script = getScript(c);
+  if (!script || script.cold) {
+    document.getElementById('detail-center').innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;height:300px;">
+        <div style="text-align:center;">
+          <div style="font-size:48px;margin-bottom:16px;">🔒</div>
+          <div style="font-weight:800;font-size:18px;font-family:'Syne',sans-serif;color:var(--muted);margin-bottom:12px;">Cold Lead</div>
+          <div style="font-size:15px;color:var(--red);font-family:'Segoe UI',Tahoma,Arial,sans-serif;direction:rtl;line-height:1.8;">هذا الليد تم تصنيفه كـ Cold. لا مزيد من المتابعة.</div>
+        </div>
+      </div>`;
+    return;
+  }
+  const setter = getSetterName();
+  const name = getContactName(c);
+  const spec = getFieldValue(c,'clinic_specialty') || '[التخصص]';
+  const disc = getFieldValue(c,'discovery_call_date');
+  const notes = getFieldValue(c,'if_not_closed_why') || '[ملاحظات]';
+
+  function fill(txt) {
+    return txt
+      .replace(/\[الاسم\]/g, `<span class="script-placeholder">${esc(name)}</span>`)
+      .replace(/\[اسمك\]/g, `<span class="script-placeholder">${esc(setter)}</span>`)
+      .replace(/\[التخصص\]/g, `<span class="script-placeholder">${esc(spec)}</span>`)
+      .replace(/\[وقت الاجتماع\]/g, `<span class="script-placeholder">${disc?fmtDate(new Date(disc)):'[التاريخ]'}</span>`)
+      .replace(/\[ملاحظات\]/g, `<span class="script-placeholder">${esc(notes)}</span>`)
+      .replace(/\[اليوم\]/g, `<span class="script-placeholder">[يوم]</span>`)
+      .replace(/\[الوقت\]/g, `<span class="script-placeholder">[وقت]</span>`)
+      .replace(/\[وقت\]/g, `<span class="script-placeholder">[وقت]</span>`)
+      .replace(/\[طريقة\]/g, `<span class="script-placeholder">[الطريقة]</span>`)
+      .replace(/\{\{name\}\}/g, `<span class="script-placeholder">${esc(name)}</span>`)
+      .replace(/\{\{specialty\}\}/g, `<span class="script-placeholder">${esc(spec)}</span>`);
+  }
+
+  const varHTML = (script.variants||[]).map((v,i)=>`
+    <div class="variant-item">
+      <button class="variant-toggle" onclick="this.nextElementSibling.classList.toggle('open')">
+        ▶ VARIANT ${i+1} — ${esc(v.label)} <span>▼</span>
+      </button>
+      <div class="variant-body">
+        <div class="variant-text">${fill(esc(v.text)).replace(/\n/g,'<br>')}</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('detail-center').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div style="font-weight:800;font-size:15px;font-family:'Syne',sans-serif;">${esc(script.title)}</div>
+      <div style="font-size:11px;color:var(--muted);background:var(--off-white);padding:3px 10px;border-radius:8px;border:1px solid var(--border);">${esc(script.context)}</div>
+    </div>
+    <div class="script-card">
+      <div class="script-label">MAIN SCRIPT</div>
+      <div class="script-text">${fill(esc(script.script)).replace(/\n/g,'<br>')}</div>
+      ${varHTML?`<hr style="border:none;border-top:1px dashed var(--border);margin:16px 0;">${varHTML}`:''}
+    </div>
+  `;
+}
+
+function renderDetailRight(c, stage) {
+  const showDisc = ['new-lead','contacted'].includes(stage);
+  const showSV = stage === 'meeting-done';
+  const naCount = getNoAnswerCount(c);
+  const script = getScript(c);
+  if (script && script.cold) {
+    document.getElementById('detail-right').innerHTML = `
+      <div style="text-align:center;padding:30px 10px;color:var(--muted);">
+        <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+        <div style="font-size:12px;font-weight:600;color:var(--red);">Cold Lead</div>
+        <div style="font-size:11px;margin-top:4px;">No more follow-up</div>
+      </div>
+      <hr class="outcome-sep">
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="closeLeadDetail()">← Back</button>
+    `;
+    return;
+  }
+  document.getElementById('detail-right').innerHTML = `
+    <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">CALL OUTCOME</div>
+    ${showDisc?`<button class="outcome-btn primary" onclick="outcomeDiscovery()">✅ Discovery Booked</button>`:''}
+    ${showSV?`<button class="outcome-btn primary" onclick="outcomeSiteVisit()">✅ Site Visit Booked</button>`:''}
+    <button class="outcome-btn" onclick="outcomeCallback()">📅 Callback Scheduled</button>
+    <button class="outcome-btn" onclick="outcomeNoAnswer()">🔄 No Answer ${naCount>0?`(${naCount}/6)`:''}</button>
+    <button class="outcome-btn" onclick="outcomeSpokeNotReady()">💬 Spoke — Not Ready</button>
+    <hr class="outcome-sep">
+    <button class="outcome-btn" onclick="outcomeNotInterested()">❌ Not Interested</button>
+    <button class="outcome-btn" onclick="outcomeWrongNumber()">⚠️ Wrong Number</button>
+    <hr class="outcome-sep">
+    <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="closeLeadDetail()">← Back</button>
+  `;
+}
+
+/* ══════════════════════════════════════
+   SCRIPTS
+══════════════════════════════════════ */
+function getScript(c) {
+  const naCount = getNoAnswerCount(c);
+
+  if (naCount >= 7) {
+    return { id:'cold_max', title:'Cold Lead', context:'Max attempts reached', script:null, cold:true };
+  }
+
+  const scripts = [
+    {
+      id:'na_0', title:'First Call', context:'Attempt 1 — First contact',
+      script:'مرحبا دكتور {{name}}، أنا رشيد من ThreeUp. عندي شي بيخص عيادتك بالذات، بياخذ دقيقتين بس. وقتك مناسب هلأ؟'
+    },
+    {
+      id:'na_1', title:'Follow-up Call', context:'Attempt 2 — Called earlier, no answer',
+      script:'مرحبا دكتور {{name}}، أنا رشيد من ThreeUp، حاولت أتواصل معك قبل شوي. فاهم إنك مشغول، بس عندي شي مهم بخصوص العيادة. دقيقتين بس؟'
+    },
+    {
+      id:'na_2', title:'Second Follow-up', context:'Attempt 3 — Called yesterday',
+      script:'مرحبا دكتور {{name}}، أنا رشيد من ThreeUp. تواصلت معك أمس، ما قدرت توصلني. بفهم إن وقتك ثمين، بس اللي عندي بيفرق على عيادتك فعلياً.'
+    },
+    {
+      id:'na_3', title:'Third Follow-up', context:'Attempt 4 — Called 2 days ago',
+      script:'دكتور {{name}}، أنا رشيد من ThreeUp. حاولت أتواصل معك أكثر من مرة. أعرف إن في ناس كتير بتتصل، بس ThreeUp مش مثلهم — عندي أرقام من عيادات بنفس تخصصك بتثبت ذلك.'
+    },
+    {
+      id:'na_4', title:'Last Regular Follow-up', context:'Attempt 5 — Called last week',
+      script:'دكتور {{name}}، رشيد من ThreeUp. آخر مرة بتواصل معك هاي الفترة. عندي عرض خاص لعيادات {{specialty}} بس لفترة محدودة، مش رح يكون متاح دايماً.'
+    },
+    {
+      id:'na_5', title:'Free Trial Offer', context:'Attempt 6 — Free trial pitch',
+      script:'دكتور {{name}}، رشيد من ThreeUp. بدي أعطيك فرصة تجرب ThreeUp مجاناً 10 أيام، بدون أي التزام أو دفع. بس عشان تشوف النتيجة بنفسك قبل ما تقرر.'
+    },
+    {
+      id:'na_6', title:'Final Re-engagement', context:'Attempt 7 — Long-term re-engage',
+      script:'دكتور {{name}}، رشيد من ThreeUp. مرت فترة من آخر مرة تحدثنا. في تطورات جديدة بThreeUp بتخص عيادات {{specialty}} بالذات، وكنت بدي تكون من أوائل اللي يعرفوا.'
+    }
+  ];
+
+  return scripts[Math.min(naCount, scripts.length - 1)];
+}
+/* ══════════════════════════════════════
+   OUTCOME HANDLERS
+══════════════════════════════════════ */
+function timeOnLead() { return leadOpenedAt ? Math.floor((Date.now()-leadOpenedAt)/1000) : 0; }
+function isSuspicious(t) { return t < 30; }
+
+function outcomeDiscovery() {
+  const t = timeOnLead();
+  showModal(`
+    <div class="modal-title">✅ Discovery Call Booked</div>
+    <div class="modal-sub">Enter the date and time for the discovery call</div>
+    <div class="modal-field"><label class="modal-label">Date</label>
+      <input type="date" id="m-date" class="modal-input" value="${todayStr()}" min="${todayStr()}"></div>
+    <div class="modal-field"><label class="modal-label">Time</label>
+      <select id="m-time" class="modal-select">${timeOptions()}</select></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-green" onclick="confirmDiscovery(${t})">Confirm Booking</button>
+    </div>`);
+}
+
+async function confirmDiscovery(t) {
+  const date = document.getElementById('m-date').value;
+  const time = document.getElementById('m-time').value;
+  if (!date||!time) return toast('Select date and time','error');
+  const c = currentContact;
+  closeModal(); showLoading('Booking discovery call...');
+  try {
+    await ghlUpdateContact(c.id, {customFields:[
+      {id:CFG.fields.contacted, field_value:'yes'},
+      {id:CFG.fields.meeting_booked, field_value:'yes'},
+      {id:CFG.fields.discovery_call_date, field_value:fmtGHL(new Date(`${date}T${time}:00`))}
+    ]});
+    await ghlAddTag(c.id, 'meeting-booked');
+    await ghlRefreshContact(c.id);
+    logAction({action:'discovery_booked', leadId:c.id, leadName:getContactName(c), timeOnLead:t,
+      suspicious:isSuspicious(t), reason:isSuspicious(t)?'outcome_clicked_under_30_seconds':null,
+      metadata:{discoveryDate:`${date}T${time}`}});
+    updateSyncBadge();
+    hideLoading(); removeFromList(c.id); closeLeadDetail();
+  } catch(e) { hideLoading(); toast('GHL error: '+e.message,'error'); return; }
+  try {
+    await createCalendarAppointment(c.id, getContactName(c), 'discovery', `${date}T${time}:00`);
+    toast('✓ Appointment added to calendar','success');
+  } catch(e) {
+    console.warn('Calendar sync failed:', e.message);
+    toast('⚠ Contact updated but calendar sync failed','warning');
+  }
+}
+
+function outcomeSiteVisit() {
+  const t = timeOnLead();
+  showModal(`
+    <div class="modal-title">✅ Site Visit Booked</div>
+    <div class="modal-sub">Enter the date and time for the site visit</div>
+    <div class="modal-field"><label class="modal-label">Date</label>
+      <input type="date" id="m-date" class="modal-input" value="${todayStr()}" min="${todayStr()}"></div>
+    <div class="modal-field"><label class="modal-label">Time</label>
+      <select id="m-time" class="modal-select">${timeOptions()}</select></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-green" onclick="confirmSiteVisit(${t})">Confirm Booking</button>
+    </div>`);
+}
+
+async function confirmSiteVisit(t) {
+  const date = document.getElementById('m-date').value;
+  const time = document.getElementById('m-time').value;
+  if (!date||!time) return toast('Select date and time','error');
+  const c = currentContact; closeModal(); showLoading('Booking site visit...');
+  try {
+    await ghlUpdateContact(c.id, {customFields:[
+      {id:CFG.fields.site_visit_booked, field_value:'yes'},
+      {id:CFG.fields.site_visit_date, field_value:fmtGHL(new Date(`${date}T${time}:00`))}
+    ]});
+    await ghlAddTag(c.id, 'site-visit');
+    await ghlRefreshContact(c.id);
+    logAction({action:'site_visit_booked', leadId:c.id, leadName:getContactName(c), timeOnLead:t,
+      suspicious:isSuspicious(t), reason:isSuspicious(t)?'outcome_clicked_under_30_seconds':null,
+      metadata:{siteVisitDate:`${date}T${time}`}});
+    updateSyncBadge();
+    hideLoading(); removeFromList(c.id); closeLeadDetail();
+  } catch(e) { hideLoading(); toast('GHL error: '+e.message,'error'); return; }
+  try {
+    await createCalendarAppointment(c.id, getContactName(c), 'siteVisit', `${date}T${time}:00`);
+    toast('✓ Appointment added to calendar','success');
+  } catch(e) {
+    console.warn('Calendar sync failed:', e.message);
+    toast('⚠ Contact updated but calendar sync failed','warning');
+  }
+}
+
+function outcomeCallback() {
+  const t = timeOnLead();
+  const nbd = nextBizDay(new Date(),1).toISOString().split('T')[0];
+  showModal(`
+    <div class="modal-title">📅 Callback Scheduled</div>
+    <div class="modal-sub">Sun–Thu only, 10am–7pm</div>
+    <div class="modal-field"><label class="modal-label">Date</label>
+      <input type="date" id="m-date" class="modal-input" value="${nbd}" min="${todayStr()}"></div>
+    <div class="modal-field"><label class="modal-label">Time</label>
+      <select id="m-time" class="modal-select">${timeOptions()}</select></div>
+    <div class="modal-field"><label class="modal-label">Note (optional)</label>
+      <input type="text" id="m-note" class="modal-input" placeholder="e.g. call in morning"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-amber" onclick="confirmCallback(${t})">Schedule</button>
+    </div>`);
+}
+
+async function confirmCallback(t) {
+  const date = document.getElementById('m-date').value;
+  const time = document.getElementById('m-time').value;
+  if (!date||!time) return toast('Select date and time','error');
+  const sel = new Date(date+'T12:00:00');
+  if (!isBizDay(sel)) return toast('Select a business day (Sun–Thu)','error');
+  const c = currentContact;
+  const tagDate = `${date}-${time.replace(':','-')}`;
+  const note = document.getElementById('m-note')?.value || '';
+  closeModal(); showLoading('Scheduling callback...');
+  try {
+    await ghlAddTag(c.id, `callback-scheduled-${tagDate}`);
+    await ghlRefreshContact(c.id);
+    logAction({action:'callback_scheduled', leadId:c.id, leadName:getContactName(c), timeOnLead:t,
+      suspicious:isSuspicious(t), reason:isSuspicious(t)?'outcome_clicked_under_30_seconds':null,
+      metadata:{callbackDate:date, callbackTime:time, note}});
+    updateSyncBadge();
+    hideLoading(); closeLeadDetail();
+    await refreshLeads();
+  } catch(e) { hideLoading(); toast('GHL error: '+e.message,'error'); return; }
+  try {
+    await createCalendarAppointment(c.id, getContactName(c), 'callback', `${date}T${time}:00`);
+    toast('✓ Appointment added to calendar','success');
+  } catch(e) {
+    console.warn('Calendar sync failed:', e.message);
+    toast('⚠ Contact updated but calendar sync failed','warning');
+  }
+}
+
+function outcomeNoAnswer() {
+  const t = timeOnLead();
+  const c = currentContact;
+  const cur = getNoAnswerCount(c);
+  const next = cur + 1;
+  showModal(`
+    <div class="modal-title">🔄 No Answer</div>
+    <div class="modal-sub">Attempt #${next} of 6</div>
+    ${next >= 6
+      ? `<div class="warning-box">⚠️ After this, lead moves to Free Trial sequence.</div>`
+      : `<div class="info-box"><strong>Attempt:</strong> ${next} / 6 — count saved to GHL</div>`}
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-amber" onclick="confirmNoAnswer(${t},${next})">Confirm</button>
+    </div>`);
+}
+
+async function confirmNoAnswer(t, newCount) {
+  const c = currentContact; closeModal(); showLoading('Logging...');
+  try {
+    const fieldId = getNoAnswerFieldId(c);
+    const fieldPayload = fieldId
+      ? { id: fieldId, field_value: String(newCount) }
+      : { key: 'no_answer_count', field_value: String(newCount) };
+    await ghlUpdateContact(c.id, { customFields: [fieldPayload] });
+    const oldRetryTags = (c.tags || []).filter(tag => tag.startsWith('no-answer-retry-'));
+    for (const tag of oldRetryTags) { try { await ghlRemoveTag(c.id, tag); } catch(e) {} }
+    if (newCount >= 6) {
+      await ghlAddTag(c.id, 'free-trial-sequence');
+      toast('Lead moved to Free Trial sequence', 'warning');
+    } else {
+      toast(`No answer #${newCount} logged to GHL`, 'success');
+    }
+    await ghlRefreshContact(c.id);
+    logAction({action:'no_answer', leadId:c.id, leadName:getContactName(c), timeOnLead:t,
+      suspicious:isSuspicious(t), reason:isSuspicious(t)?'outcome_clicked_under_30_seconds':null,
+      metadata:{attemptNumber:newCount}});
+    updateSyncBadge();
+    hideLoading(); closeLeadDetail(); await refreshLeads();
+  } catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
+}
+
+function outcomeSpokeNotReady() {
+  const t = timeOnLead();
+  showModal(`
+    <div class="modal-title">💬 Spoke — Not Ready</div>
+    <div class="modal-sub">Log objection and set follow-up</div>
+    <div class="modal-field"><label class="modal-label">Objection</label>
+      <label class="checkbox-item"><input type="radio" name="obj" value="Need to discuss with partner"> Need to discuss with partner</label>
+      <label class="checkbox-item"><input type="radio" name="obj" value="Not sure yet, need time"> Not sure yet, need time</label>
+      <label class="checkbox-item"><input type="radio" name="obj" value="Busy right now"> Busy right now, call later</label>
+      <label class="checkbox-item"><input type="radio" name="obj" value="Want to think about it"> Want to think about it</label>
+      <label class="checkbox-item"><input type="radio" name="obj" value="other"> Other: <input type="text" id="obj-other" class="modal-input" style="width:180px;margin-left:6px;" placeholder="describe..."></label>
+    </div>
+    <div class="modal-field"><label class="modal-label">Follow-up</label>
+      <label class="checkbox-item"><input type="radio" name="fu" value="3" checked> In 3 days (recommended)</label>
+      <label class="checkbox-item"><input type="radio" name="fu" value="5"> In 5 days</label>
+      <label class="checkbox-item"><input type="radio" name="fu" value="7"> Next week</label>
+      <label class="checkbox-item"><input type="radio" name="fu" value="custom"> Custom: <input type="date" id="fu-date" class="modal-input" style="width:150px;margin-left:6px;" value="${todayStr()}" min="${todayStr()}"></label>
+    </div>
+    <div class="modal-field"><label class="modal-label">Notes (optional)</label>
+      <input type="text" id="snr-notes" class="modal-input" placeholder="Additional context..."></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSpokeNotReady(${t})">Log & Continue</button>
+    </div>`);
+}
+
+async function confirmSpokeNotReady(t) {
+  const objR = document.querySelector('input[name="obj"]:checked');
+  let obj = objR ? objR.value : '';
+  if (obj==='other') obj = document.getElementById('obj-other')?.value.trim() || 'Other';
+  const fuR = document.querySelector('input[name="fu"]:checked');
+  let fuDate;
+  if (fuR?.value === 'custom') fuDate = new Date(document.getElementById('fu-date').value+'T12:00:00');
+  else fuDate = nextBizDay(new Date(), parseInt(fuR?.value||'3'));
+  const fuStr = fuDate.toISOString().split('T')[0];
+  const c = currentContact; closeModal(); showLoading('Updating GHL...');
+  try {
+    if (obj) await ghlUpdateContact(c.id, {customFields:[{id:CFG.fields.objection, field_value:obj}]});
+    await ghlAddTag(c.id, `follow-up-scheduled-${fuStr}`);
+    await ghlUpdateContact(c.id, {customFields:[{id:CFG.fields.contacted, field_value:'yes'}]});
+    await ghlRefreshContact(c.id);
+    logAction({action:'spoke_not_ready', leadId:c.id, leadName:getContactName(c), timeOnLead:t,
+      suspicious:isSuspicious(t), reason:isSuspicious(t)?'outcome_clicked_under_30_seconds':null,
+      metadata:{objection:obj, followUpDate:fuStr}});
+    updateSyncBadge();
+    hideLoading(); toast(`Follow-up set for ${fmtDate(fuDate)}`,'success');
+    closeLeadDetail(); await refreshLeads();
+  } catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
+}
+
+function outcomeNotInterested() {
+  const t = timeOnLead();
+  showModal(`
+    <div class="modal-title">❌ Not Interested</div>
+    <div class="modal-sub">Select lost reason</div>
+    <div class="modal-field">
+      <label class="checkbox-item"><input type="radio" name="lost" value="Price too high"> Price too high</label>
+      <label class="checkbox-item"><input type="radio" name="lost" value="Already using competitor"> Already using competitor</label>
+      <label class="checkbox-item"><input type="radio" name="lost" value="Not convinced / no trust"> Not convinced / no trust</label>
+      <label class="checkbox-item"><input type="radio" name="lost" value="Bad timing"> Bad timing</label>
+      <label class="checkbox-item"><input type="radio" name="lost" value="Not a good fit"> Not a good fit</label>
+      <label class="checkbox-item"><input type="radio" name="lost" value="Rude / angry"> Rude / angry</label>
+      <label class="checkbox-item"><input type="radio" name="lost" value="other"> Other: <input type="text" id="lost-other" class="modal-input" style="width:160px;margin-left:6px;"></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-red" onclick="confirmNotInterested(${t})">Mark Lost</button>
+    </div>`);
+}
+
+async function confirmNotInterested(t) {
+  const lR = document.querySelector('input[name="lost"]:checked');
+  let reason = lR ? lR.value : 'Not specified';
+  if (reason==='other') reason = document.getElementById('lost-other')?.value.trim()||'Other';
+  const c = currentContact; closeModal(); showLoading('Updating GHL...');
+  try {
+    await ghlUpdateContact(c.id, {customFields:[
+      {id:CFG.fields.lost_reason, field_value:reason},
+      {id:CFG.fields.closed_won, field_value:'no'}
+    ]});
+    for (const tag of (c.tags||[]).filter(t=>['meeting-booked','contacted','site-visit','free-trial-sequence'].some(s=>t.includes(s)))) {
+      try { await ghlRemoveTag(c.id,tag); } catch(e){}
+    }
+    await ghlAddTag(c.id,'lost');
+    logAction({action:'lost', leadId:c.id, leadName:getContactName(c), timeOnLead:t,
+      suspicious:isSuspicious(t), reason:isSuspicious(t)?'outcome_clicked_under_30_seconds':null,
+      metadata:{lostReason:reason}});
+    hideLoading(); removeFromList(c.id); toast('Lead marked as lost','success'); closeLeadDetail();
+  } catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
+}
+
+function outcomeWrongNumber() {
+  const t = timeOnLead();
+  showModal(`
+    <div class="modal-title">⚠️ Wrong Number</div>
+    <div class="modal-sub">Lead will be archived and removed from your list.</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-red" onclick="confirmWrongNumber(${t})">Archive</button>
+    </div>`);
+}
+
+async function confirmWrongNumber(t) {
+  const c = currentContact; closeModal(); showLoading('Archiving...');
+  try {
+    for (const tag of (c.tags||[])) { try { await ghlRemoveTag(c.id,tag); } catch(e){} }
+    await ghlAddTag(c.id,'archived');
+    logAction({action:'wrong_number', leadId:c.id, leadName:getContactName(c), timeOnLead:t,
+      suspicious:isSuspicious(t), reason:isSuspicious(t)?'outcome_clicked_under_30_seconds':null, metadata:{}});
+    hideLoading(); removeFromList(c.id); toast('Lead archived','success'); closeLeadDetail();
+  } catch(e) { hideLoading(); toast('Error: '+e.message,'error'); }
+}
+
+/* ══════════════════════════════════════
+   ACTIVITY LOG
+══════════════════════════════════════ */
+function logAction(entry) {
+  const logs = JSON.parse(localStorage.getItem('activityLog')||'[]');
+  logs.push({timestamp:new Date().toISOString(), setter:getSetterName(), ...entry});
+  localStorage.setItem('activityLog', JSON.stringify(logs));
+  // Detect rapid outcomes
+  const recent = logs.filter(l=>Date.now()-new Date(l.timestamp).getTime()<120000 && l.action!=='lead_opened');
+  if (recent.length>=3) console.warn('[ThreeUp RED FLAG] Rapid outcomes detected:', recent.length, 'in 2 min');
+}
+
+/* ══════════════════════════════════════
+   BUSINESS DAY UTILS
+══════════════════════════════════════ */
+function isBizDay(d) { const day=d.getDay(); return day>=0&&day<=4; }
+function nextBizDay(from, n=1) {
+  const d=new Date(from); let added=0;
+  while(added<n){d.setDate(d.getDate()+1);if(isBizDay(d))added++;}
+  return d;
+}
+function nextRetryTime() { const d=nextBizDay(new Date(),1); d.setHours(10,0,0,0); return d; }
+
+/* ══════════════════════════════════════
+   UI UTILS
+══════════════════════════════════════ */
+function showModal(html) {
+  document.getElementById('modal-container').innerHTML=
+    `<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal fade-in">${html}</div></div>`;
+}
+function closeModal() { document.getElementById('modal-container').innerHTML=''; }
+function toast(msg, type='') {
+  const c=document.getElementById('toast-container');
+  const el=document.createElement('div'); el.className=`toast ${type}`; el.textContent=msg;
+  c.appendChild(el); setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},3500);
+}
+function showLoading(txt='Loading...') { document.getElementById('loading-text').textContent=txt; document.getElementById('loading-overlay').classList.remove('hidden'); }
+function hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); }
+function toggleSection(k) {
+  sectionOpen[k]=!sectionOpen[k];
+  document.getElementById(`${k}-body`).classList.toggle('collapsed',!sectionOpen[k]);
+  document.getElementById(`${k}-chevron`).textContent=sectionOpen[k]?'▼':'▶';
+}
+function removeFromList(id) { allContacts=allContacts.filter(c=>c.id!==id); renderDashboard(allContacts); }
+function startTimer() {
+  clearInterval(timerInterval);
+  const el=document.getElementById('timer-display');
+  timerInterval=setInterval(()=>{
+    if(!leadOpenedAt||!el) return;
+    const s=Math.floor((Date.now()-leadOpenedAt)/1000);
+    el.textContent=`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+    el.className=`timer-display${s>300?' slow':''}`;
+  },1000);
+}
+function fmtDate(d) { if(!d||isNaN(d.getTime()))return'—'; const m=String(d.getMonth()+1).padStart(2,'0'),dy=String(d.getDate()).padStart(2,'0'); return`${m}/${dy}/${d.getFullYear()}`; }
+function fmtGHL(d) { return fmtDate(d); }
+function fmt12hr(d) { if(!d||isNaN(d.getTime()))return''; let h=d.getHours();const m=String(d.getMinutes()).padStart(2,'0');const ap=h>=12?'PM':'AM';h=h%12||12;return`${h}:${m} ${ap}`; }
+function todayStr() { const n=new Date();return`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; }
+function timeOptions() {
+  let o=''; for(let h=10;h<=19;h++){for(const m of['00','30']){if(h===19&&m==='30')break;const hh=String(h).padStart(2,'0');const hp=h>12?h-12:h,ap=h>=12?'PM':'AM';o+=`<option value="${hh}:${m}">${hp}:${m} ${ap}</option>`;}} return o;
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ══════════════════════════════════════
+   TAB SWITCHING & PERFORMANCE
+══════════════════════════════════════ */
+function switchTab(tab) {
+  const calls = document.getElementById('tab-calls');
+  const perf  = document.getElementById('tab-performance');
+  const btnC  = document.getElementById('tab-btn-calls');
+  const btnP  = document.getElementById('tab-btn-performance');
+  if (tab === 'calls') {
+    calls.classList.remove('hidden');
+    perf.classList.add('hidden');
+    btnC.classList.add('active');
+    btnP.classList.remove('active');
+  } else {
+    calls.classList.add('hidden');
+    perf.classList.remove('hidden');
+    btnC.classList.remove('active');
+    btnP.classList.add('active');
+    renderPerformanceTab();
+  }
+}
+
+function renderPerformanceTab() {
+  const logs = JSON.parse(localStorage.getItem('activityLog') || '[]');
+  const now  = new Date();
+
+  const todayStr2 = now.toDateString();
+  const todayLogs = logs.filter(l => new Date(l.timestamp).toDateString() === todayStr2);
+
+  const dow = now.getDay();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - dow);
+  weekStart.setHours(0,0,0,0);
+  const weekLogs = logs.filter(l => new Date(l.timestamp) >= weekStart);
+
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthLogs  = logs.filter(l => new Date(l.timestamp) >= monthStart);
+
+  function countAct(arr, action) { return arr.filter(l => l.action === action).length; }
+  function totalCalls(arr)  { return arr.filter(l => l.action !== 'lead_opened').length; }
+  function totalBook(arr)   { return countAct(arr,'discovery_booked') + countAct(arr,'site_visit_booked'); }
+  function successRate(arr) {
+    const t = totalCalls(arr); if (!t) return '—';
+    return ((totalBook(arr)/t)*100).toFixed(1)+'%';
+  }
+  function avgTime(arr) {
+    const w = arr.filter(l => l.timeOnLead > 0);
+    if (!w.length) return '—';
+    const avg = w.reduce((s,l)=>s+l.timeOnLead,0)/w.length;
+    return `${Math.floor(avg/60)}m ${Math.floor(avg%60)}s`;
+  }
+
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const byDay = {};
+  weekLogs.forEach(l => {
+    if (l.action==='discovery_booked'||l.action==='site_visit_booked') {
+      const d = new Date(l.timestamp).getDay();
+      byDay[d] = (byDay[d]||0)+1;
+    }
+  });
+  const bestEntry = Object.entries(byDay).sort((a,b)=>b[1]-a[1])[0];
+  const bestDay   = bestEntry ? `${dayNames[bestEntry[0]]} (${bestEntry[1]})` : '—';
+
+  const suspicious      = logs.filter(l => l.suspicious);
+  const lostNoReason    = logs.filter(l => l.action==='lost' && (!l.metadata?.lostReason || l.metadata.lostReason==='Not specified'));
+  const overdueCallbacks = allContacts.filter(c => { const cb=getCallbackTime(c); return cb && cb < now; });
+  const highNA           = allContacts.filter(c => getNoAnswerCount(c) >= 5 && !hasTag(c,'meeting-booked') && !hasTag(c,'site-visit'));
+
+  const setterMap = {};
+  monthLogs.forEach(l => {
+    const s = l.setter||'Unknown';
+    if (!setterMap[s]) setterMap[s] = {calls:0,bookings:0};
+    if (l.action !== 'lead_opened') setterMap[s].calls++;
+    if (l.action==='discovery_booked'||l.action==='site_visit_booked') setterMap[s].bookings++;
+  });
+  const leaderboard = Object.entries(setterMap)
+    .map(([name,s])=>({name, calls:s.calls, bookings:s.bookings,
+      rate: s.calls ? ((s.bookings/s.calls)*100).toFixed(1)+'%' : '0%'}))
+    .sort((a,b)=>b.bookings-a.bookings);
+
+  function stat(label, value, color) {
+    return `<div class="perf-stat"><div class="perf-num" style="color:${color||'var(--text)'}">${value}</div><div class="perf-label">${label}</div></div>`;
+  }
+  function flag(cls, count, label, detail) {
+    return `<div class="flag-row flag-${cls}"><span class="flag-count">${count}</span><span class="flag-label">${label}</span>${detail?`<span class="flag-detail">${esc(detail)}</span>`:''}</div>`;
+  }
+
+  const todayBook = totalBook(todayLogs);
+  const weekBook  = totalBook(weekLogs);
+
+  document.getElementById('tab-performance').innerHTML = `
+    <div class="perf-wrap">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-top:4px;">
+        <div style="font-size:18px;font-weight:800;font-family:'Syne',sans-serif;">Performance</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="renderPerformanceTab()">↻ Refresh</button>
+          <button class="btn btn-amber btn-sm" onclick="exportLocalLogs()">⬇ Export CSV</button>
+        </div>
+      </div>
+
+      <div class="perf-section">
+        <div class="perf-section-title">📅 Today's Stats</div>
+        <div class="perf-grid">
+          ${stat('Calls Logged', totalCalls(todayLogs))}
+          ${stat('Discovery Booked', countAct(todayLogs,'discovery_booked'), 'var(--green-dark)')}
+          ${stat('Site Visit Booked', countAct(todayLogs,'site_visit_booked'), 'var(--green-dark)')}
+          ${stat('No Answer', countAct(todayLogs,'no_answer'), 'var(--amber-dark)')}
+          ${stat('Not Interested', countAct(todayLogs,'lost'), 'var(--red)')}
+          ${stat('Not Ready', countAct(todayLogs,'spoke_not_ready'))}
+          ${stat('Success Rate', successRate(todayLogs), todayBook>0?'var(--green-dark)':'var(--muted)')}
+          ${stat('Avg Time/Lead', avgTime(todayLogs))}
+        </div>
+      </div>
+
+      <div class="perf-section">
+        <div class="perf-section-title">📆 This Week (Sun–Sat)</div>
+        <div class="perf-grid">
+          ${stat('Total Calls', totalCalls(weekLogs))}
+          ${stat('Bookings', weekBook, weekBook>0?'var(--green-dark)':'')}
+          ${stat('Discovery Booked', countAct(weekLogs,'discovery_booked'), 'var(--green-dark)')}
+          ${stat('Site Visit Booked', countAct(weekLogs,'site_visit_booked'), 'var(--green-dark)')}
+          ${stat('No Answer', countAct(weekLogs,'no_answer'), 'var(--amber-dark)')}
+          ${stat('Success Rate', successRate(weekLogs), 'var(--purple)')}
+          ${stat('Best Day', bestDay)}
+          ${stat('Avg Time/Lead', avgTime(weekLogs))}
+        </div>
+      </div>
+
+      <div class="perf-section">
+        <div class="perf-section-title">🚨 Red Flags — For Adnan</div>
+        ${flag(suspicious.length?'red':'green', suspicious.length, 'Outcomes logged under 30 seconds',
+          suspicious.length ? suspicious.slice(0,3).map(l=>`${l.leadName||'?'} (${l.action})`).join(', ')+(suspicious.length>3?` +${suspicious.length-3} more`:'') : '')}
+        ${flag(lostNoReason.length?'red':'green', lostNoReason.length, 'Leads marked lost with no reason')}
+        ${flag(overdueCallbacks.length?'amber':'green', overdueCallbacks.length, 'Overdue callbacks not actioned',
+          overdueCallbacks.length ? overdueCallbacks.slice(0,3).map(c=>getContactName(c)).join(', ')+(overdueCallbacks.length>3?` +${overdueCallbacks.length-3} more`:'') : '')}
+        ${flag(highNA.length?'amber':'green', highNA.length, 'Leads with 5+ no-answers and no booking',
+          highNA.length ? highNA.slice(0,3).map(c=>getContactName(c)).join(', ')+(highNA.length>3?` +${highNA.length-3} more`:'') : '')}
+      </div>
+
+      <div class="perf-section">
+        <div class="perf-section-title">🏆 Leaderboard — This Month</div>
+        ${leaderboard.length === 0
+          ? `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">No activity logged this month yet.</div>`
+          : leaderboard.map((s,i) => `
+            <div class="lb-row ${i===0?'top':''}">
+              <div class="lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+              <div class="lb-name">${esc(s.name)}</div>
+              <div class="lb-stats">
+                <div class="lb-stat"><div class="lb-stat-num" style="color:var(--green-dark)">${s.bookings}</div><div class="lb-stat-label">bookings</div></div>
+                <div class="lb-stat"><div class="lb-stat-num">${s.calls}</div><div class="lb-stat-label">calls</div></div>
+                <div class="lb-stat"><div class="lb-stat-num" style="color:var(--purple)">${s.rate}</div><div class="lb-stat-label">rate</div></div>
+              </div>
+            </div>`).join('')
+        }
+      </div>
+    </div>
+  `;
+}
+
+/* ── BOOT ── */
+(function(){
+  const auth=JSON.parse(localStorage.getItem('auth')||'null');
+  if(auth&&auth.authenticated) showApp();
+})();
+</script>
+</body>
+</html>
