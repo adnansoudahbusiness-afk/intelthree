@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -205,6 +205,32 @@ h1,h2,h3,.logo{font-family:'Syne',sans-serif;}
 .lb-stat{text-align:center;}
 .lb-stat-num{font-size:18px;font-weight:800;font-family:'Syne',sans-serif;}
 .lb-stat-label{font-size:10px;color:var(--muted);}
+
+/* SCRIPT OPENER & SCENARIO CARDS */
+.script-opener-block{background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.script-opener-text{direction:rtl;text-align:right;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:19px;font-weight:700;line-height:2;color:var(--text);}
+.script-bridge-text{direction:rtl;text-align:right;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:16px;line-height:1.9;color:var(--muted);margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);}
+.scenario-cards-wrap{display:flex;flex-direction:column;gap:10px;}
+.scenario-card{border-radius:10px;overflow:hidden;background:#fff;border:1px solid var(--border);border-left:4px solid var(--border);}
+.scenario-card.sc-blue{border-left-color:#3b82f6;}
+.scenario-card.sc-orange{border-left-color:#f97316;}
+.scenario-card.sc-green{border-left-color:#22c55e;}
+.scenario-card.sc-red{border-left-color:#ef4444;}
+.scenario-card-toggle{width:100%;background:var(--off-white);border:none;padding:11px 14px;text-align:right;cursor:pointer;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:14px;color:var(--text);display:flex;justify-content:space-between;align-items:center;direction:rtl;transition:background .15s;gap:8px;}
+.scenario-card-toggle:hover{background:var(--border);}
+.scenario-card-toggle .sc-chevron{font-size:11px;color:var(--muted);flex-shrink:0;}
+.scenario-card-body{padding:14px 16px;display:none;direction:rtl;text-align:right;}
+.scenario-card-body.open{display:block;}
+.scenario-card-text{font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:15px;line-height:2;color:var(--text);white-space:pre-wrap;}
+/* OUTREACH INNER TABS */
+.script-inner-tabs{display:flex;background:var(--off-white);border-bottom:1px solid var(--border);border-radius:14px 14px 0 0;overflow:hidden;}
+.script-inner-tab{flex:1;background:transparent;border:none;border-bottom:2px solid transparent;padding:11px 14px;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;}
+.script-inner-tab:hover{color:var(--text);}
+.script-inner-tab.active{color:var(--purple);border-bottom-color:var(--purple);background:#fff;}
+.outreach-panel{display:none;padding:20px;}
+.outreach-panel.active{display:block;}
+.switch-to-doctor-btn{margin-top:14px;padding:10px 16px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;cursor:pointer;width:100%;transition:background .15s;direction:rtl;}
+.switch-to-doctor-btn:hover{background:var(--purple-dark);}
 </style>
 </head>
 <body>
@@ -632,13 +658,8 @@ function showApp() {
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   updateTopbarDate();
-  const name = localStorage.getItem('setterName');
-  if (!name) {
-    document.getElementById('name-prompt-overlay').classList.remove('hidden');
-  } else {
-    document.getElementById('setter-name-display').textContent = name;
-    initApp();
-  }
+  document.getElementById('setter-name-display').textContent = 'راشد';
+  initApp();
 }
 
 function saveSetterName() {
@@ -665,7 +686,7 @@ function confirmSetterName() {
   document.getElementById('setter-name-input').classList.add('hidden');
   document.getElementById('setter-name-display').classList.remove('hidden');
 }
-function getSetterName() { return localStorage.getItem('setterName') || 'Setter'; }
+function getSetterName() { return 'راشد'; }
 
 async function initApp() {
   requestNotifications();
@@ -986,61 +1007,156 @@ function renderDetailLeft(c) {
 }
 
 function renderDetailCenter(c) {
-  const script = getScript(c);
-  if (!script || script.cold) {
-    document.getElementById('detail-center').innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:center;height:300px;">
-        <div style="text-align:center;">
-          <div style="font-size:48px;margin-bottom:16px;">🔒</div>
-          <div style="font-weight:800;font-size:18px;font-family:'Syne',sans-serif;color:var(--muted);margin-bottom:12px;">Cold Lead</div>
-          <div style="font-size:15px;color:var(--red);font-family:'Segoe UI',Tahoma,Arial,sans-serif;direction:rtl;line-height:1.8;">هذا الليد تم تصنيفه كـ Cold. لا مزيد من المتابعة.</div>
-        </div>
-      </div>`;
-    return;
-  }
-  const setter = getSetterName();
+  const naCount = getNoAnswerCount(c);
   const name = getContactName(c);
-  const spec = getFieldValue(c,'clinic_specialty') || '[التخصص]';
-  const disc = getFieldValue(c,'discovery_call_date');
-  const notes = getFieldValue(c,'if_not_closed_why') || '[ملاحظات]';
+  const spec = getFieldValue(c,'clinic_specialty') || '';
+  const city = getFieldValue(c,'lead_city') || '';
+  const discDate = getFieldValue(c,'discovery_call_date');
+  const adnanNotes = getFieldValue(c,'if_not_closed_why') || '';
+  const cbTime = getCallbackTime(c);
+  const cbTimeStr = cbTime ? fmt12hr(cbTime) : '';
+  const refName = '';
 
   function fill(txt) {
+    if (!txt) return '';
+    const fmtDisc = discDate ? fmtDate(new Date(discDate)) : '';
     return txt
-      .replace(/\[الاسم\]/g, `<span class="script-placeholder">${esc(name)}</span>`)
-      .replace(/\[اسمك\]/g, `<span class="script-placeholder">${esc(setter)}</span>`)
-      .replace(/\[التخصص\]/g, `<span class="script-placeholder">${esc(spec)}</span>`)
-      .replace(/\[وقت الاجتماع\]/g, `<span class="script-placeholder">${disc?fmtDate(new Date(disc)):'[التاريخ]'}</span>`)
-      .replace(/\[ملاحظات\]/g, `<span class="script-placeholder">${esc(notes)}</span>`)
-      .replace(/\[اليوم\]/g, `<span class="script-placeholder">[يوم]</span>`)
-      .replace(/\[الوقت\]/g, `<span class="script-placeholder">[وقت]</span>`)
-      .replace(/\[وقت\]/g, `<span class="script-placeholder">[وقت]</span>`)
-      .replace(/\[طريقة\]/g, `<span class="script-placeholder">[الطريقة]</span>`)
       .replace(/\{\{name\}\}/g, `<span class="script-placeholder">${esc(name)}</span>`)
-      .replace(/\{\{specialty\}\}/g, `<span class="script-placeholder">${esc(spec)}</span>`);
+      .replace(/\{\{specialty\}\}/g, spec ? `<span class="script-placeholder">${esc(spec)}</span>` : '<span style="color:var(--muted)">[التخصص]</span>')
+      .replace(/\{\{city\}\}/g, city ? `<span class="script-placeholder">${esc(city)}</span>` : '<span style="color:var(--muted)">[المدينة]</span>')
+      .replace(/\{\{discovery_date\}\}/g, fmtDisc ? `<span class="script-placeholder">${fmtDisc}</span>` : '<span style="color:var(--muted)">[تاريخ الاجتماع]</span>')
+      .replace(/\{\{adnan_notes\}\}/g, adnanNotes ? `<span class="script-placeholder">${esc(adnanNotes)}</span>` : '<span style="color:var(--muted)">[ملاحظات عدنان]</span>')
+      .replace(/\{\{callback_time\}\}/g, cbTimeStr ? `<span class="script-placeholder">${cbTimeStr}</span>` : '<span style="color:var(--muted)">[وقت الاتصال]</span>')
+      .replace(/\{\{referrer_name\}\}/g, refName ? `<span class="script-placeholder">${esc(refName)}</span>` : '<span style="color:var(--muted)">[اسم المحيل]</span>');
   }
 
-  const varHTML = (script.variants||[]).map((v,i)=>`
-    <div class="variant-item">
-      <button class="variant-toggle" onclick="this.nextElementSibling.classList.toggle('open')">
-        ▶ VARIANT ${i+1} — ${esc(v.label)} <span>▼</span>
-      </button>
-      <div class="variant-body">
-        <div class="variant-text">${fill(esc(v.text)).replace(/\n/g,'<br>')}</div>
-      </div>
-    </div>`).join('');
+  function scenarioCard(type, label, text, subItems) {
+    const clsMap = {blue:'sc-blue',orange:'sc-orange',green:'sc-green',red:'sc-red'};
+    const cls = clsMap[type] || '';
+    let body = `<div class="scenario-card-text">${fill(text).replace(/\n/g,'<br>')}</div>`;
+    if (subItems) {
+      body += subItems.map(s => `<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);"><div style="font-size:12px;font-weight:700;color:var(--muted);direction:rtl;margin-bottom:6px;">${esc(s.label)}</div><div class="scenario-card-text">${fill(s.text).replace(/\n/g,'<br>')}</div></div>`).join('');
+    }
+    return `<div class="scenario-card ${cls}"><button class="scenario-card-toggle" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.sc-chevron').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'"><span>${esc(label)}</span><span class="sc-chevron">▼</span></button><div class="scenario-card-body">${body}</div></div>`;
+  }
 
-  document.getElementById('detail-center').innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <div style="font-weight:800;font-size:15px;font-family:'Syne',sans-serif;">${esc(script.title)}</div>
-      <div style="font-size:11px;color:var(--muted);background:var(--off-white);padding:3px 10px;border-radius:8px;border:1px solid var(--border);">${esc(script.context)}</div>
-    </div>
-    <div class="script-card">
-      <div class="script-label">MAIN SCRIPT</div>
-      <div class="script-text">${fill(esc(script.script)).replace(/\n/g,'<br>')}</div>
-      ${varHTML?`<hr style="border:none;border-top:1px dashed var(--border);margin:16px 0;">${varHTML}`:''}
-    </div>
-  `;
+  function openerBlock(openerText, bridgeText) {
+    return `<div class="script-opener-block"><div class="script-label">الفاتحة</div><div class="script-opener-text">${fill(openerText).replace(/\n/g,'<br>')}</div>${bridgeText ? `<div class="script-bridge-text">${fill(bridgeText).replace(/\n/g,'<br>')}</div>` : ''}</div>`;
+  }
+
+  function sL(txt) {
+    return `<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-top:8px;">${txt}</div>`;
+  }
+
+  function commonScenarios() {
+    return [
+      scenarioCard('orange','إذا قال مشغول هلأ','بالتأكيد دكتور، ما في أي ضغط.\nهل بكون في مشكلة لو حكيت معك —\nالصبح ولا بعد الظهر بيكون أريح إلك؟'),
+      scenarioCard('blue','إذا قال شو بتعملوا','بنينا برنامج متخصص للعيادات بيحقق 3 نتائج:\n1. يبني أساس قوي على جوجل بجذب مرضى من داخل وخارج الأردن.\n2. يزيد ولاء المرضى الحاليين.\n3. بنظم المواعيد — بقلل الإلغاء وعدم الحضور.\nهل بكون في مشكلة لو عملنا اجتماع أونلاين هاليومين،\n20 دقيقة بس، نشوف كيف بنطبقها على عيادتك بالذات؟'),
+      scenarioCard('orange','إذا قال مش مهتم','بفهمك دكتور، وبحترم وقتك.\nهل بكون في مشكلة لو سألتك سؤال واحد بس؟\nعيادتك هلأ — في مجال إنك تزيد عدد المرضى الجدد،\nولا أنت مكتفي؟',[
+        {label:'إذا في مجال للنمو:',text:'هاد بالضبط اللي بنساعد فيه.\nهل بكون في مشكلة لو عملنا 20 دقيقة أونلاين\nهاليومين — بدون أي التزام؟'},
+        {label:'إذا ممتلئ المواعيد:',text:'ماشي دكتور، يسعدك.\nهل بكون في مشكلة لو تواصلت معك بعد شهرين؟'}
+      ]),
+      scenarioCard('orange','إذا قال بعتلي واتساب','بالتأكيد دكتور، رح أبعت.\nبس قبل ما أبعت — عشان اللي بعتهولك يكون مفيد فعلاً —\nهل عيادتك {{specialty}} في {{city}}؟\n\nبعد التأكيد:\nتمام. رح أبعتلك واتساب هلأ.\nهل بكون في مشكلة لو تواصلت معك بعد ما تشوفه؟'),
+      scenarioCard('green','الإغلاق','تمام دكتور.\nهل بكون في مشكلة لو حجزنا الاجتماع —\nعندي غداً الساعة 10 أو بعد بكرا الساعة 12.\nأي وقت أريح إلك؟')
+    ].join('');
+  }
+
+  const script = getScript(c);
+  const el = document.getElementById('detail-center');
+
+  if (script.type === 's1') {
+    el.innerHTML = openerBlock(
+      'مرحبا دكتور {{name}}، إن شاله أمورك تمام.\nإن شاله ما أزعجتك، معك راشد من ThreeUp.',
+      'أنت تواصلت معنا على دعايتنا هاسبوع،\nفأنا حابب أسألك — هل بكون في مشكلة لو\nعملنا اجتماع أونلاين هاليومين نشوف كيف\nبنقدر نساعدك؟'
+    ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${commonScenarios()}</div>`;
+
+  } else if (script.type === 's2') {
+    el.innerHTML = openerBlock(
+      'مرحبا دكتور {{name}}، إن شاله أمورك تمام.\nإن شاله ما أزعجتك، معك راشد من ThreeUp.',
+      'شفنا إنك زرت موقعنا ومهتم بمعرفة أكثر،\nفأنا حابب أسألك — هل بكون في مشكلة لو\nعملنا اجتماع أونلاين هاليومين نشوف كيف\nبنقدر نساعد عيادتك؟'
+    ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${commonScenarios()}</div>`;
+
+  } else if (script.type === 's3') {
+    el.innerHTML = openerBlock(
+      'مرحبا دكتور {{name}}، إن شاله أمورك تمام.\nإن شاله ما أزعجتك، معك راشد من ThreeUp.',
+      'دكتور {{referrer_name}} حكى معنا عنك\nوقالنا إنك قد تكون مهتم.\nهل بكون في مشكلة لو عملنا اجتماع أونلاين\nهاليومين نشوف كيف بنقدر نساعدك؟'
+    ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${scenarioCard('blue','إذا قال شو قالك عني','قالنا إنك دكتور {{specialty}} ناجح وعيادتك بتنمو.\nوهاد بالضبط النوع اللي بنقدر نساعده يوصل\nللمستوى الجاي.')}${commonScenarios()}</div>`;
+
+  } else if (script.type === 's4') {
+    const gkS = [
+      scenarioCard('orange','إذا قالت الدكتور مشغول','بفهم، وما بدي أزعجه.\nهل بكون في مشكلة لو سألتك —\nامتى بيكون عنده دقيقة؟\nحتى لو بعد ساعة، أنا رح انتظر.'),
+      scenarioCard('blue','إذا سألت شو المشروع عن','عن تطوير العيادات الخاصة في الأردن —\nوأنا محتاج رأي دكتور {{specialty}} بالذات\nعشان يكون المشروع دقيق.\nالدكتور {{name}} اسمه طلع في بحثي كخبير بالمجال.'),
+      scenarioCard('orange','إذا قالت اتصل بكرا','بالتأكيد، شكراً إلك.\nهل بكون في مشكلة لو سألتك —\nالصبح ولا بعد الظهر بيكون أفضل\nعشان ما أزعجه بوقت غلط؟'),
+      `<div style="text-align:center;padding:12px 0;"><button class="switch-to-doctor-btn" onclick="switchOutreachTab('doctor')">انتقلت للدكتور ←</button></div>`
+    ].join('');
+    const drS = [
+      scenarioCard('green','إذا ضحك / انفتح','شكراً دكتور على الدقيقة.\nبنينا برنامج متخصص للعيادات بيحقق 3 نتائج:\n1. يبني أساس قوي على جوجل بجذب مرضى من داخل وخارج الأردن.\n2. يزيد ولاء المرضى الحاليين.\n3. بنظم المواعيد — بقلل الإلغاء وعدم الحضور.\nهل بكون في مشكلة لو عملنا اجتماع أونلاين\n20 دقيقة هاليومين؟'),
+      scenarioCard('orange','إذا قال مش مهتم','بفهمك دكتور، وبحترم وقتك.\nهل بكون في مشكلة لو سألتك سؤال واحد بس؟\nعيادتك هلأ — في مجال إنك تزيد عدد المرضى الجدد،\nولا أنت مكتفي؟',[
+        {label:'إذا في مجال للنمو:',text:'هاد بالضبط اللي بنساعد فيه.\nهل بكون في مشكلة لو عملنا 20 دقيقة أونلاين؟\nبدون أي التزام — بس تشوف الأرقام.'},
+        {label:'إذا ممتلئ المواعيد:',text:'ماشي دكتور، يسعدك.\nهل بكون في مشكلة لو تواصلت معك بعد 3 شهور؟'}
+      ]),
+      scenarioCard('orange','إذا قال مشغول هلأ','بالتأكيد دكتور.\nهل بكون في مشكلة لو سألتك —\nالصبح ولا بعد الظهر بيكون أريح إلك؟'),
+      scenarioCard('blue','إذا قال شو بتعملوا بالضبط','بنينا برنامج متخصص للعيادات بيحقق 3 نتائج:\n1. يبني أساس قوي على جوجل بجذب مرضى من داخل وخارج الأردن.\n2. يزيد ولاء المرضى الحاليين.\n3. بنظم المواعيد — بقلل الإلغاء وعدم الحضور.\nهل بكون في مشكلة لو عملنا اجتماع أونلاين 20 دقيقة؟'),
+      scenarioCard('green','الإغلاق','تمام دكتور.\nهل بكون في مشكلة لو حجزنا الاجتماع —\nعندي غداً الساعة 10 أو بعد بكرا الساعة 12.\nأي وقت أريح إلك؟')
+    ].join('');
+    el.innerHTML = `<div class="script-opener-block" style="padding:0;overflow:hidden;"><div class="script-inner-tabs"><button class="script-inner-tab active" id="outreach-tab-gk" onclick="switchOutreachTab('gk')">السكرتيرة</button><button class="script-inner-tab" id="outreach-tab-doctor" onclick="switchOutreachTab('doctor')">الدكتور</button></div><div class="outreach-panel active" id="outreach-panel-gk"><div class="script-label">فاتحة السكرتيرة</div><div class="script-opener-text">${fill('مرحبا، إن شاله ما أزعجتك.\nمعك راشد، أنا طالب جامعي وعندي\nمشروع تخرج لازم أسلمه الخميس.').replace(/\n/g,'<br>')}</div><div class="script-bridge-text">${fill('بس محتاج رأي دكتور متخصص —\nهل بكون في مشكلة لو أخذت دقيقة\nوحدة بس من وقت الدكتور {{name}}؟\nبس عشان آخذ رأيه المهني.').replace(/\n/g,'<br>')}</div>${sL('السيناريوهات')}<div class="scenario-cards-wrap">${gkS}</div></div><div class="outreach-panel" id="outreach-panel-doctor"><div class="script-label">فاتحة الدكتور</div><div class="script-opener-text">${fill('مرحبا دكتور {{name}}، إن شاله ما أزعجتك.\nمعك راشد — حكت معي السكرتيرة إنك\nممكن تعطيني دقيقة.').replace(/\n/g,'<br>')}</div><div class="script-bridge-text">${fill('بكون صريح معك دكتور —\nأنا مش طالب جامعي.\nأنا راشد من ThreeUp، شركة متخصصة\nبتطوير العيادات في الأردن.\nبس ما كانوا رح يوصلوني إليك\nلو ما استخدمت هاد الأسلوب.\nهل بكون في مشكلة لو أخذت دقيقة وحدة بس؟\nوبعدها إذا ما كان الموضوع يهمك،\nما رح أزعجك مرة ثانية.').replace(/\n/g,'<br>')}</div>${sL('السيناريوهات')}<div class="scenario-cards-wrap">${drS}</div></div></div>`;
+
+  } else if (script.type === 's5') {
+    const discStr = discDate ? fmtDate(new Date(discDate)) : '[تاريخ الاجتماع]';
+    const bridge = 'حكى معك عدنان خلال الاجتماع ' + discStr + '.\n' +
+      (adnanNotes ? 'واللي استنتجناه عن وضع العيادة: ' + adnanNotes + '\n' : '') +
+      'ورح نساعدك في الخطوة الجاية.\n\nهلا عشان نكمل الإجراء —\nهل بكون في مشكلة لو مرينا على العيادة\nهاسبوع أو الأسبوع الجاي؟';
+    el.innerHTML = openerBlock(
+      'مرحبا دكتور {{name}}، معك راشد من ThreeUp.\nإن شاله ما أزعجتك؟ كيف أمورك دكتور؟',
+      bridge
+    ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${[
+      scenarioCard('orange','إذا قال بدي أفكر أكثر','بالتأكيد دكتور، قرار مهم ويستاهل تفكير.\nهل بكون في مشكلة لو سألتك —\nشو النقطة اللي لسا مش واضحة إلك؟\nعشان ما تضل عندك أي سؤال.'),
+      scenarioCard('orange','إذا ذكر السعر','بفهمك دكتور. عدنان بيحكيك بالأرقام بالتفصيل\nبالزيارة — هل بكون في مشكلة لو حجزنا الزيارة\nوبعدها بتقرر؟ ما في أي التزام قبل ما تشوف كل شي.'),
+      scenarioCard('orange','إذا ذكر منافس','بفهمك دكتور. هل بكون في مشكلة لو عدنان\nيمر على العيادة ويوضحك الفرق بالأرقام؟\nبعدها القرار إلك بالكامل.'),
+      scenarioCard('orange','إذا قال مشغول هاسبوع','بالتأكيد دكتور.\nهل بكون في مشكلة لو حجزنا الأسبوع الجاي —\nالأول ولا آخر الأسبوع بيكون أريح إلك؟')
+    ].join('')}</div>`;
+
+  } else if (script.type === 's6') {
+    el.innerHTML = openerBlock(
+      'مرحبا دكتور {{name}}، معك راشد من ThreeUp.\nبعتذر عن الانقطاع الفترة الماضية —\nكنت متابع آخر تطورات سوق {{specialty}} في الأردن.',
+      'لاحظت خلال الشهر الماضي إن عيادات\n{{specialty}} في {{city}} اللي طبقت\nنظام تنظيم المواعيد شافت فرق واضح\nبنسبة الإلغاء وعدد المرضى الجدد.\n\nهل بكون في مشكلة لو خصصنا 15 دقيقة\nأونلاين الأسبوع الجاي؟\nبوضحلك كيف ممكن ينعكس على عيادتك بالذات.'
+    ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${[
+      scenarioCard('blue','إذا قال اتصلت فينا قبل','صح دكتور، وبعتذر إنه التوقيت ما كان مناسب.\nهل بكون في مشكلة لو أخبرتني —\nشو اللي تغير من آخر مرة حكينا؟'),
+      scenarioCard('orange','إذا قال جربنا أشياء مشابهة','بفهمك دكتور، وهاد خوفك طبيعي جداً.\nهل بكون في مشكلة لو سألتك —\nشو بالضبط ما اشتغل؟\nعشان أعرف إذا كنا فعلاً بنقدر نساعد أو لا —\nما بدي أضيع وقتك.')
+    ].join('')}</div>`;
+
+  } else if (script.type === 's7') {
+    el.innerHTML = openerBlock(
+      'مرحبا دكتور {{name}}، معك راشد من ThreeUp.\nإن شاله ما أزعجتك.',
+      'حاولت أتواصل معك أكثر من مرة،\nوبفهم إنك مشغول أو ما كان الوقت مناسب.\nعشان هيك — هل بكون في مشكلة لو\nجربت ThreeUp مجاناً 10 أيام،\nبدون أي التزام أو دفع؟'
+    ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${[
+      scenarioCard('blue','إذا قال شو في المصيدة','ما في مصيدة دكتور.\nإحنا واثقين من النتيجة.\nهل بكون في مشكلة لو سألتك —\nشو اللي بيقنعك إننا جادين؟'),
+      scenarioCard('red','إذا قال مش مهتم حتى بالتجربة','بفهمك دكتور، وبحترم قرارك.\nهل بكون في مشكلة لو تواصلت معك بعد شهر؟\nبس عشان أكون متاح لما يتغير الوضع.'),
+      scenarioCard('green','إذا وافق على التجربة','ممتاز دكتور.\nهل بكون في مشكلة لو حجزنا 20 دقيقة\nأونلاين هاليومين نبدأ فيها الإعداد؟')
+    ].join('')}</div>`;
+
+  } else if (script.type === 's8') {
+    const attempt = script.attempt || naCount;
+    const s8map = {
+      1:'مرحبا دكتور {{name}}، إن شاله ما أزعجتك،\nمعك راشد من ThreeUp.\nحاولت أتصل فيك قبل شوي —\nهل بكون في مشكلة لو أخذت دقيقتين\nمن وقتك هلأ؟',
+      2:'مرحبا دكتور {{name}}، معك راشد من ThreeUp.\nإن شاله ما أزعجتك.\nتواصلت معك أمس وما قدرت توصلني —\nهل بكون في مشكلة لو حكيت معك دقيقتين؟',
+      3:'مرحبا دكتور {{name}}، معك راشد من ThreeUp.\nبعتذر على التواصل المتكرر —\nبس عندي شي بيخص عيادتك {{specialty}}\nفي {{city}} بالذات.\nهل بكون في مشكلة لو دقيقتين بس؟',
+      4:'مرحبا دكتور {{name}}، معك راشد من ThreeUp.\nآخر مرة بتواصل معك هاي الفترة —\nهل بكون في مشكلة لو سألتك سؤال واحد بس؟\nعيادتك هلأ — في مجال إنك تزيد عدد\nالمرضى الجدد، ولا أنت مكتفي؟'
+    };
+    const txt = s8map[attempt] || s8map[Math.min(attempt, 4)];
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;"><div style="font-weight:800;font-size:14px;font-family:'Syne',sans-serif;">محاولة #${attempt}</div><div style="font-size:11px;color:var(--muted);background:var(--off-white);padding:3px 10px;border-radius:8px;border:1px solid var(--border);">No Answer Sequence</div></div>${openerBlock(txt,'')}`;
+  }
 }
+
+function switchOutreachTab(tab) {
+  ['gk','doctor'].forEach(function(t) {
+    const btn = document.getElementById('outreach-tab-'+t);
+    const panel = document.getElementById('outreach-panel-'+t);
+    if (btn) btn.classList.toggle('active', t===tab);
+    if (panel) panel.classList.toggle('active', t===tab);
+  });
+}
+
 
 function renderDetailRight(c, stage) {
   const showDisc = ['new-lead','contacted'].includes(stage);
@@ -1079,43 +1195,14 @@ function renderDetailRight(c, stage) {
 ══════════════════════════════════════ */
 function getScript(c) {
   const naCount = getNoAnswerCount(c);
-
-  if (naCount >= 7) {
-    return { id:'cold_max', title:'Cold Lead', context:'Max attempts reached', script:null, cold:true };
-  }
-
-  const scripts = [
-    {
-      id:'na_0', title:'First Call', context:'Attempt 1 — First contact',
-      script:'مرحبا دكتور {{name}}، أنا رشيد من ThreeUp. عندي شي بيخص عيادتك بالذات، بياخذ دقيقتين بس. وقتك مناسب هلأ؟'
-    },
-    {
-      id:'na_1', title:'Follow-up Call', context:'Attempt 2 — Called earlier, no answer',
-      script:'مرحبا دكتور {{name}}، أنا رشيد من ThreeUp، حاولت أتواصل معك قبل شوي. فاهم إنك مشغول، بس عندي شي مهم بخصوص العيادة. دقيقتين بس؟'
-    },
-    {
-      id:'na_2', title:'Second Follow-up', context:'Attempt 3 — Called yesterday',
-      script:'مرحبا دكتور {{name}}، أنا رشيد من ThreeUp. تواصلت معك أمس، ما قدرت توصلني. بفهم إن وقتك ثمين، بس اللي عندي بيفرق على عيادتك فعلياً.'
-    },
-    {
-      id:'na_3', title:'Third Follow-up', context:'Attempt 4 — Called 2 days ago',
-      script:'دكتور {{name}}، أنا رشيد من ThreeUp. حاولت أتواصل معك أكثر من مرة. أعرف إن في ناس كتير بتتصل، بس ThreeUp مش مثلهم — عندي أرقام من عيادات بنفس تخصصك بتثبت ذلك.'
-    },
-    {
-      id:'na_4', title:'Last Regular Follow-up', context:'Attempt 5 — Called last week',
-      script:'دكتور {{name}}، رشيد من ThreeUp. آخر مرة بتواصل معك هاي الفترة. عندي عرض خاص لعيادات {{specialty}} بس لفترة محدودة، مش رح يكون متاح دايماً.'
-    },
-    {
-      id:'na_5', title:'Free Trial Offer', context:'Attempt 6 — Free trial pitch',
-      script:'دكتور {{name}}، رشيد من ThreeUp. بدي أعطيك فرصة تجرب ThreeUp مجاناً 10 أيام، بدون أي التزام أو دفع. بس عشان تشوف النتيجة بنفسك قبل ما تقرر.'
-    },
-    {
-      id:'na_6', title:'Final Re-engagement', context:'Attempt 7 — Long-term re-engage',
-      script:'دكتور {{name}}، رشيد من ThreeUp. مرت فترة من آخر مرة تحدثنا. في تطورات جديدة بThreeUp بتخص عيادات {{specialty}} بالذات، وكنت بدي تكون من أوائل اللي يعرفوا.'
-    }
-  ];
-
-  return scripts[Math.min(naCount, scripts.length - 1)];
+  if (hasTag(c,'meeting-done') || getFieldValue(c,'meeting_done')==='yes') return {id:'s5',type:'s5'};
+  if (naCount === 5) return {id:'s7',type:'s7'};
+  if (naCount >= 4 || hasTag(c,'cold')) return {id:'s6',type:'s6'};
+  if (naCount >= 1) return {id:'s8',type:'s8',attempt:naCount};
+  if (hasTag(c,'outreach')) return {id:'s4',type:'s4'};
+  if (hasTag(c,'referral')) return {id:'s3',type:'s3'};
+  if (hasTag(c,'website')) return {id:'s2',type:'s2'};
+  return {id:'s1',type:'s1'};
 }
 /* ══════════════════════════════════════
    OUTCOME HANDLERS
@@ -1447,7 +1534,7 @@ function toast(msg, type='') {
   const el=document.createElement('div'); el.className=`toast ${type}`; el.textContent=msg;
   c.appendChild(el); setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},3500);
 }
-function showLoading(txt='Loading...') { document.getElementById('loading-text').textContent=txt; document.getElementById('loading-overlay').classList.remove('hidden'); }
+function showLoading(txt='') { document.getElementById('loading-overlay').classList.remove('hidden'); }
 function hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); }
 function toggleSection(k) {
   sectionOpen[k]=!sectionOpen[k];
