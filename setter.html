@@ -1363,6 +1363,7 @@ function outcomeNoAnswer() {
 async function confirmNoAnswer(t, newCount) {
   const c = currentContact; closeModal(); showLoading('Logging...');
   try {
+    // STEP 1 — Increment no_answer_count in GHL
     const fieldId = getNoAnswerFieldId(c);
     const fieldPayload = fieldId
       ? { id: fieldId, field_value: String(newCount) }
@@ -1376,6 +1377,11 @@ async function confirmNoAnswer(t, newCount) {
     } else {
       toast(`No answer #${newCount} logged to GHL`, 'success');
     }
+    // STEP 2 — Remove "no-answer" tag
+    try { await ghlRemoveTag(c.id, 'no-answer'); } catch(e) {}
+    // STEP 3 — Wait 2s then re-add "no-answer" tag
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    await ghlAddTag(c.id, 'no-answer');
     await ghlRefreshContact(c.id);
     logAction({action:'no_answer', leadId:c.id, leadName:getContactName(c), timeOnLead:t,
       suspicious:isSuspicious(t), reason:isSuspicious(t)?'outcome_clicked_under_30_seconds':null,
