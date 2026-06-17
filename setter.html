@@ -533,45 +533,47 @@ const GHL_HEADERS = () => ({
 });
 
 async function fetchAllCleanedContacts() {
-  const contacts = [];
-  let startAfter   = null;
-  let startAfterId = null;
-  const MAX_PAGES  = 30;
-
-  for (let page = 0; page < MAX_PAGES; page++) {
-    let url = `${CFG.ghlBase}/contacts/?locationId=${CFG.ghlLoc}&limit=100`;
-    if (startAfter)   url += `&startAfter=${encodeURIComponent(startAfter)}`;
-    if (startAfterId) url += `&startAfterId=${encodeURIComponent(startAfterId)}`;
-
-    let res, data;
+  const all = [];
+  let searchAfter = null;
+  for (let i = 0; i < 30; i++) {
+    const body = {
+      locationId: 'ck8gYVHUEnLEIg0OVsLd',
+      pageLimit: 100
+    };
+    if (searchAfter) body.searchAfter = searchAfter;
+    let res;
     try {
-      res = await fetch(url, {headers: GHL_HEADERS()});
-      if (!res.ok) {
-        const body = await res.text().catch(() => '');
-        console.warn(`[GHL] page ${page+1} returned HTTP ${res.status}:`, body);
-        break;
-      }
-      data = await res.json();
-    } catch(e) {
-      console.warn(`[GHL] page ${page+1} network error:`, e.message);
+      res = await fetch('https://services.leadconnectorhq.com/contacts/search', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer pit-5fe4c7a5-aa93-4b13-a034-4ac42ffba273',
+          'Version': '2021-07-28',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+    } catch (e) {
+      console.warn('[GHL] network error page', i, e);
       break;
     }
-
-    const list = data.contacts || [];
-    const cleaned = list.filter(c => c.tags && c.tags.includes('cleanup-done'));
-    contacts.push(...cleaned);
-    console.log(`[GHL] page ${page+1}: ${list.length} returned, ${cleaned.length} cleanup-done (total so far: ${contacts.length})`);
-
-    const meta = data.meta || {};
-    if (!list.length || !meta.startAfterId) break;
-    if (meta.total && contacts.length >= meta.total) break;
-
-    startAfter   = meta.startAfter   || null;
-    startAfterId = meta.startAfterId;
+    if (!res.ok) {
+      const txt = await res.text();
+      console.warn('[GHL] page', i, 'status', res.status, txt);
+      break;
+    }
+    const data = await res.json();
+    const contacts = data.contacts || [];
+    console.log('[GHL] page', i, ':', contacts.length, 'returned');
+    if (contacts.length === 0) break;
+    const cleaned = contacts.filter(c => c.tags && c.tags.includes('cleanup-done'));
+    all.push(...cleaned);
+    const last = contacts[contacts.length - 1];
+    if (!last.searchAfter) break;
+    searchAfter = last.searchAfter;
+    if (all.length >= (data.total || 99999)) break;
   }
-
-  console.log(`[GHL] fetch complete — ${contacts.length} contacts with cleanup-done tag`);
-  return contacts;
+  console.log('[GHL] TOTAL fetched:', all.length);
+  return all;
 }
 
 async function ghlUpdateContact(contactId, body) {
