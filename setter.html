@@ -752,7 +752,10 @@ function getNoAnswerFieldId(c) {
 }
 function cleanName(raw) {
   if (!raw) return '';
-  let s = raw.trim().replace(/^(dr\.?\s+|د\.\s*)/i, '');
+  let s = raw.trim()
+    .replace(/^(dr\.?\s+|د\.\s*)/i, '')
+    .replace(/\s+[A-Z][0-9][a-z0-9]*$/i, '')
+    .trim();
   if (/^[؀-ۿ\s]+$/.test(s)) return s;
   return s.replace(/\b\w+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 }
@@ -775,6 +778,28 @@ function getLastTouch(c) {
   return [c.lastActivityDate, c.dateUpdated, c.dateAdded].filter(Boolean).sort().reverse()[0];
 }
 function getDaysSinceLastTouch(c) { return getDaysSince(getLastTouch(c)); }
+function getDaysSinceContact(c) {
+  const discDate = getFieldValue(c,'discovery_call_date');
+  const svDate   = getFieldValue(c,'site_visit_date');
+  const candidates = [c.lastActivityDate, c.dateUpdated, discDate, svDate, c.dateAdded]
+    .filter(Boolean).map(d => new Date(d)).filter(d => !isNaN(d.getTime()));
+  if (!candidates.length) return 9999;
+  return Math.floor((Date.now() - Math.max(...candidates.map(d => d.getTime()))) / 86400000);
+}
+function getGreeting() {
+  return new Date().getHours() < 12 ? 'صباح الخير' : 'مساء الخير';
+}
+function mapAdnanNote(code) {
+  if (!code) return '';
+  const m = {needs_time:'محتاج وقت يفكر',needs_to_discuss:'بدو يحكي مع شريك/زوجة',discuss_partner:'بدو يحكي مع شريكه',price:'متردد بالسعر',budget:'متردد بالسعر',competitor:'عنده نظام/منافس',has_system:'عنده نظام/منافس',busy:'كان مشغول',not_sure:'مش متأكد من الفايدة'};
+  return m[code.toLowerCase()] || null;
+}
+function arDaysAgo(days) {
+  if (!days || days >= 9999) return null;
+  if (days === 0) return 'اليوم';
+  if (days < 30) return `${days} يوم`;
+  return `${Math.round(days/30)} شهر`;
+}
 function getCallbackTime(c) {
   if (!c.tags) return null;
   const t = c.tags.find(t => t.startsWith('callback-scheduled-'));
@@ -834,14 +859,18 @@ function classifyContact(c) {
   if (retryDate && retryDate.toDateString() === today)
     return {priority:'urgent', reason:`Retry #${naCount+1}/6`, retryDate};
   // Post-discovery >5d no site visit
-  if (stage==='meeting-done' && daysSinceDisc > 5)
+  if (stage==='meeting-done' && daysSinceDisc > 5 && daysSinceDisc < 9999)
     return {priority:'urgent', reason:`${daysSinceDisc}d post-discovery`, daysSince};
+  if (stage==='meeting-done' && daysSinceDisc >= 9999)
+    return {priority:'warm', reason:'Discovery done — follow up', daysSince};
   // Free trial / 6+ NAs
   if (stage==='free-trial' || naCount >= 6)
     return {priority:'cold', reason:'Free trial sequence', daysSince};
   // 60+ days cold
-  if (daysSince >= 60)
+  if (daysSince >= 60 && daysSince < 9999)
     return {priority:'cold', reason:`${daysSince}d cold`, daysSince};
+  if (daysSince >= 9999)
+    return {priority:'cold', reason:'No activity logged', daysSince};
   // New lead <7d not contacted
   if (stage==='new-lead' && daysSince < 7)
     return {priority:'warm', reason:`New lead ${daysSince}d ago`, daysSince};
@@ -867,17 +896,20 @@ function renderDashboard(contacts) {
     c._reason = cls.reason;
     c._cbTime = cls.cbTime || null;
     c._daysSince = cls.daysSince || getDaysSinceLastTouch(c);
+    c._noPhone = !getContactPhone(c);
     buckets[cls.priority].push(c);
   }
 
+  const noPhoneLast = (a, b) => (a._noPhone === b._noPhone ? 0 : a._noPhone ? 1 : -1);
   buckets.urgent.sort((a,b) => {
+    const np = noPhoneLast(a,b); if (np) return np;
     if (a._cbTime && b._cbTime) return a._cbTime - b._cbTime;
     if (a._cbTime) return -1; if (b._cbTime) return 1;
     return b._daysSince - a._daysSince;
   });
-  buckets.scheduled.sort((a,b) => (a._cbTime||0) - (b._cbTime||0));
-  buckets.warm.sort((a,b) => a._daysSince - b._daysSince);
-  buckets.cold.sort((a,b) => b._daysSince - a._daysSince);
+  buckets.scheduled.sort((a,b) => noPhoneLast(a,b) || ((a._cbTime||0) - (b._cbTime||0)));
+  buckets.warm.sort((a,b) => noPhoneLast(a,b) || (a._daysSince - b._daysSince));
+  buckets.cold.sort((a,b) => noPhoneLast(a,b) || (b._daysSince - a._daysSince));
 
   const total = Object.values(buckets).reduce((s,b) => s+b.length, 0);
   document.getElementById('dash-stats').innerHTML = `
@@ -916,6 +948,7 @@ function renderLeadCard(c) {
   const priCls = {urgent:'pill-urgent',scheduled:'pill-scheduled',warm:'pill-warm',cold:'pill-cold'}[pri]||'';
   const cbBadge = c._cbTime ? `<span class="callback-badge">📅 ${fmt12hr(c._cbTime)}</span>` : '';
   const naBadge = naCount > 0 ? `<span class="na-badge">↩ ${naCount}/6</span>` : '';
+  const noPhoneBadge = !phone ? `<span class="na-badge" style="color:#e65c00;background:#fff4e0;border-color:#ffcc88;">⚠️ ناقص رقم</span>` : '';
   const touch = c._daysSince >= 9999 ? '—' : c._daysSince === 0 ? 'Today' : `${c._daysSince}d ago`;
   const meta = [spec,city].filter(Boolean).join(' · ');
   const phone = getContactPhone(c);
@@ -931,7 +964,7 @@ function renderLeadCard(c) {
         ${meta?`<span>${esc(meta)}</span><span>·</span>`:''}
         <span>${srcIcon} ${esc(src||'—')}</span><span>·</span>
         <span>${touch}</span>
-        ${cbBadge}${naBadge}
+        ${cbBadge}${naBadge}${noPhoneBadge}
       </div>
       <div style="margin-top:4px;font-size:11px;display:flex;align-items:center;gap:6px;">${phoneHtml}</div>
     </div>
@@ -1040,23 +1073,44 @@ function renderDetailCenter(c) {
   const name = getContactName(c);
   const spec = getFieldValue(c,'clinic_specialty') || '';
   const city = getFieldValue(c,'lead_city') || '';
+  const src  = getFieldValue(c,'lead_source') || '';
   const discDate = getFieldValue(c,'discovery_call_date');
   const adnanNotes = getFieldValue(c,'if_not_closed_why') || '';
   const cbTime = getCallbackTime(c);
   const cbTimeStr = cbTime ? fmt12hr(cbTime) : '';
   const refName = '';
+  const daysSince = getDaysSinceContact(c);
+  const greeting = getGreeting();
+  const monthlyValCtx = getFieldValue(c,'monthly_value');
+  const discDaysCtx = getDaysSince(discDate);
+  const svDoneCtx = getFieldValue(c,'site_visit_done')==='yes' || hasTag(c,'site-visit-done');
+  const svBookedCtx = getFieldValue(c,'site_visit_booked')==='yes' || hasTag(c,'site-visit');
+  const noteCodeCtx = adnanNotes.trim();
+  const noteHumanCtx = mapAdnanNote(noteCodeCtx);
+  const ctxParts = [
+    src, spec, city,
+    (discDate && discDaysCtx < 9999) ? `اجتماع منذ ${arDaysAgo(discDaysCtx)}` : null,
+    svDoneCtx ? 'زيارة مكتملة' : svBookedCtx ? 'زيارة محجوزة' : (discDate ? 'لا زيارة' : null),
+    (noteHumanCtx || (noteCodeCtx && !noteHumanCtx ? `ملاحظة: ${noteCodeCtx}` : null))
+      ? `ملاحظة عدنان: ${noteHumanCtx || noteCodeCtx}` : null,
+    monthlyValCtx ? `قيمة: ${monthlyValCtx}` : null
+  ].filter(Boolean);
+  const ctxHtml = ctxParts.length
+    ? `<div style="background:var(--off-white);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:11px;color:var(--muted);direction:rtl;text-align:right;margin-bottom:8px;line-height:1.6;">🧠 <strong style="color:var(--text);">السياق:</strong> ${esc(ctxParts.join(' · '))}</div>`
+    : '';
 
   function fill(txt) {
     if (!txt) return '';
     const fmtDisc = discDate ? fmtDate(new Date(discDate)) : '';
     return txt
+      .replace(/\{\{greeting\}\}/g, `<span class="script-placeholder">${greeting}</span>`)
       .replace(/\{\{name\}\}/g, `<span class="script-placeholder">${esc(name)}</span>`)
-      .replace(/\{\{specialty\}\}/g, spec ? `<span class="script-placeholder">${esc(spec)}</span>` : '<span style="color:var(--muted)">[التخصص]</span>')
-      .replace(/\{\{city\}\}/g, city ? `<span class="script-placeholder">${esc(city)}</span>` : '<span style="color:var(--muted)">[المدينة]</span>')
-      .replace(/\{\{discovery_date\}\}/g, fmtDisc ? `<span class="script-placeholder">${fmtDisc}</span>` : '<span style="color:var(--muted)">[تاريخ الاجتماع]</span>')
-      .replace(/\{\{adnan_notes\}\}/g, adnanNotes ? `<span class="script-placeholder">${esc(adnanNotes)}</span>` : '<span style="color:var(--muted)">[ملاحظات عدنان]</span>')
-      .replace(/\{\{callback_time\}\}/g, cbTimeStr ? `<span class="script-placeholder">${cbTimeStr}</span>` : '<span style="color:var(--muted)">[وقت الاتصال]</span>')
-      .replace(/\{\{referrer_name\}\}/g, refName ? `<span class="script-placeholder">${esc(refName)}</span>` : '<span style="color:var(--muted)">[اسم المحيل]</span>');
+      .replace(/\{\{specialty\}\}/g, spec ? `<span class="script-placeholder">${esc(spec)}</span>` : '')
+      .replace(/\{\{city\}\}/g, city ? `<span class="script-placeholder">${esc(city)}</span>` : '')
+      .replace(/\{\{discovery_date\}\}/g, fmtDisc ? `<span class="script-placeholder">${fmtDisc}</span>` : '')
+      .replace(/\{\{adnan_notes\}\}/g, adnanNotes ? `<span class="script-placeholder">${esc(adnanNotes)}</span>` : '')
+      .replace(/\{\{callback_time\}\}/g, cbTimeStr ? `<span class="script-placeholder">${cbTimeStr}</span>` : '')
+      .replace(/\{\{referrer_name\}\}/g, refName ? `<span class="script-placeholder">${esc(refName)}</span>` : '');
   }
 
   function scenarioCard(type, label, text, subItems) {
@@ -1085,7 +1139,7 @@ function renderDetailCenter(c) {
       scenarioCard('orange','إذا قالت اتصل بعدين','بالتأكيد، شكراً إلك.\nالصبح ولا بعد الظهر بيكون أفضل\nعشان ما أزعجه بوقت غلط؟'),
       `<div style="text-align:center;padding:10px 0;"><button class="switch-to-doctor-btn" style="background:var(--green-dark);" onclick="const w=this.closest('.script-gk-wrap');if(w){w.querySelector('.gk-body').style.display='none';w.querySelector('.gk-chev').textContent='▼';}">انتقلت للدكتور ←</button></div>`
     ].join('');
-    return `<div class="script-gk-wrap" style="border:1px solid var(--amber);border-radius:14px;overflow:hidden;margin-bottom:4px;"><div style="background:#fff8e0;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;direction:rtl;" onclick="const b=this.nextElementSibling;const open=b.style.display!=='none';b.style.display=open?'none':'block';this.querySelector('.gk-chev').textContent=open?'▼':'▲';"><div style="display:flex;align-items:center;gap:8px;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:15px;font-weight:700;">👥 إذا رد السكرتير/ة (Gatekeeper)</div><span class="gk-chev" style="font-size:11px;color:var(--muted);">▼</span></div><div class="gk-body" style="display:none;padding:16px;"><div style="font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:17px;font-weight:700;direction:rtl;text-align:right;line-height:2;margin-bottom:12px;">مرحبا، إن شاله ما أزعجتك.<br>معك راشد من ThreeUp.<br>الدكتور ${fillName} تواصل معنا بخصوص تطوير العيادة،<br>وحابب أحكي معه دقيقتين بس.<br>هل هو متاح هلأ؟</div><div class="scenario-cards-wrap">${gkScenarios}</div></div></div>`;
+    return `<div class="script-gk-wrap" style="border:2px solid var(--amber);border-radius:14px;overflow:hidden;margin-bottom:8px;"><div style="background:#fff8e0;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;direction:rtl;" onclick="const b=this.nextElementSibling;const open=b.style.display!=='none';b.style.display=open?'none':'block';this.querySelector('.gk-chev').textContent=open?'▼':'▲';"><div style="display:flex;align-items:center;gap:8px;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:15px;font-weight:700;">👥 إذا رد السكرتير/ة (Gatekeeper)</div><span class="gk-chev" style="font-size:11px;color:var(--muted);">▲</span></div><div class="gk-body" style="display:block;padding:16px;border-top:1px solid #ffd98a;"><div style="font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:17px;font-weight:700;direction:rtl;text-align:right;line-height:2;margin-bottom:12px;">مرحبا، إن شاله ما أزعجتك.<br>معك راشد من ThreeUp.<br>الدكتور ${fillName} على تواصل معنا بخصوص تطوير العيادة،<br>وحابب أكمل معه دقيقتين.<br>هل هو متاح هلأ؟</div><div class="scenario-cards-wrap">${gkScenarios}</div></div></div>`;
   }
 
   function commonScenarios() {
@@ -1104,21 +1158,30 @@ function renderDetailCenter(c) {
   const script = getScript(c);
   const el = document.getElementById('detail-center');
 
+  const stale = script.stale;
+  const s1opener = stale
+    ? '{{greeting}} دكتور {{name}}، معك راشد من ThreeUp.\nبعتذر على الانقطاع — مر وقت منذ ما تواصلنا.'
+    : '{{greeting}} دكتور {{name}}، إن شاله أمورك تمام.\nمعك راشد من ThreeUp.';
+
   if (script.type === 's1') {
-    el.innerHTML = warmGatekeeperBlock(name) + openerBlock(
-      'مرحبا دكتور {{name}}، إن شاله أمورك تمام.\nإن شاله ما أزعجتك، معك راشد من ThreeUp.',
-      'أنت تواصلت معنا على دعايتنا هاسبوع،\nفأنا حابب أسألك — هل بكون في مشكلة لو\nعملنا اجتماع أونلاين هاليومين نشوف كيف\nبنقدر نساعدك؟'
+    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) + openerBlock(
+      s1opener,
+      stale
+        ? 'كنا على تواصل بخصوص تطوير عيادتك، وحابب نكمل من حيث وقفنا.\nهل بكون في مشكلة لو عملنا اجتماع أونلاين هاليومين نشوف الوضع الحالي؟'
+        : 'أنت تواصلت معنا على دعايتنا هاسبوع،\nفأنا حابب أسألك — هل بكون في مشكلة لو\nعملنا اجتماع أونلاين هاليومين نشوف كيف\nبنقدر نساعدك؟'
     ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${commonScenarios()}</div>`;
 
   } else if (script.type === 's2') {
-    el.innerHTML = warmGatekeeperBlock(name) + openerBlock(
-      'مرحبا دكتور {{name}}، إن شاله أمورك تمام.\nإن شاله ما أزعجتك، معك راشد من ThreeUp.',
-      'شفنا إنك زرت موقعنا ومهتم بمعرفة أكثر،\nفأنا حابب أسألك — هل بكون في مشكلة لو\nعملنا اجتماع أونلاين هاليومين نشوف كيف\nبنقدر نساعد عيادتك؟'
+    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) + openerBlock(
+      s1opener,
+      stale
+        ? 'شفنا إنك زرت موقعنا قبل فترة — وحابب نكمل من حيث وقفنا.\nهل بكون في مشكلة لو عملنا اجتماع أونلاين هاليومين نشوف كيف بنقدر نساعد عيادتك؟'
+        : 'شفنا إنك زرت موقعنا ومهتم بمعرفة أكثر،\nفأنا حابب أسألك — هل بكون في مشكلة لو\nعملنا اجتماع أونلاين هاليومين نشوف كيف\nبنقدر نساعد عيادتك؟'
     ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${commonScenarios()}</div>`;
 
   } else if (script.type === 's3') {
-    el.innerHTML = warmGatekeeperBlock(name) + openerBlock(
-      'مرحبا دكتور {{name}}، إن شاله أمورك تمام.\nإن شاله ما أزعجتك، معك راشد من ThreeUp.',
+    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) + openerBlock(
+      s1opener,
       'دكتور {{referrer_name}} حكى معنا عنك\nوقالنا إنك قد تكون مهتم.\nهل بكون في مشكلة لو عملنا اجتماع أونلاين\nهاليومين نشوف كيف بنقدر نساعدك؟'
     ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${scenarioCard('blue','إذا قال شو قالك عني','قالنا إنك دكتور {{specialty}} ناجح وعيادتك بتنمو.\nوهاد بالضبط النوع اللي بنقدر نساعده يوصل\nللمستوى الجاي.')}${commonScenarios()}</div>`;
 
@@ -1139,14 +1202,9 @@ function renderDetailCenter(c) {
       scenarioCard('blue','إذا قال شو بتعملوا بالضبط','بنينا برنامج متخصص للعيادات بيحقق 3 نتائج:\n1. يبني أساس قوي على جوجل بجذب مرضى من داخل وخارج الأردن.\n2. يزيد ولاء المرضى الحاليين.\n3. بنظم المواعيد — بقلل الإلغاء وعدم الحضور.\nهل بكون في مشكلة لو عملنا اجتماع أونلاين 20 دقيقة؟'),
       scenarioCard('green','الإغلاق','تمام دكتور.\nهل بكون في مشكلة لو حجزنا الاجتماع —\nعندي غداً الساعة 10 أو بعد بكرا الساعة 12.\nأي وقت أريح إلك؟')
     ].join('');
-    el.innerHTML = `<div class="script-opener-block" style="padding:0;overflow:hidden;"><div class="script-inner-tabs"><button class="script-inner-tab active" id="outreach-tab-gk" onclick="switchOutreachTab('gk')">السكرتيرة</button><button class="script-inner-tab" id="outreach-tab-doctor" onclick="switchOutreachTab('doctor')">الدكتور</button></div><div class="outreach-panel active" id="outreach-panel-gk"><div class="script-label">فاتحة السكرتيرة</div><div class="script-opener-text">${fill('مرحبا، إن شاله ما أزعجتك.\nمعك راشد، أنا طالب جامعي وعندي\nمشروع تخرج لازم أسلمه الخميس.').replace(/\n/g,'<br>')}</div><div class="script-bridge-text">${fill('بس محتاج رأي دكتور متخصص —\nهل بكون في مشكلة لو أخذت دقيقة\nوحدة بس من وقت الدكتور {{name}}؟\nبس عشان آخذ رأيه المهني.').replace(/\n/g,'<br>')}</div>${sL('السيناريوهات')}<div class="scenario-cards-wrap">${gkS}</div></div><div class="outreach-panel" id="outreach-panel-doctor"><div class="script-label">فاتحة الدكتور</div><div class="script-opener-text">${fill('مرحبا دكتور {{name}}، إن شاله ما أزعجتك.\nمعك راشد — حكت معي السكرتيرة إنك\nممكن تعطيني دقيقة.').replace(/\n/g,'<br>')}</div><div class="script-bridge-text">${fill('بكون صريح معك دكتور —\nأنا مش طالب جامعي.\nأنا راشد من ThreeUp، شركة متخصصة\nبتطوير العيادات في الأردن.\nبس ما كانوا رح يوصلوني إليك\nلو ما استخدمت هاد الأسلوب.\nهل بكون في مشكلة لو أخذت دقيقة وحدة بس؟\nوبعدها إذا ما كان الموضوع يهمك،\nما رح أزعجك مرة ثانية.').replace(/\n/g,'<br>')}</div>${sL('السيناريوهات')}<div class="scenario-cards-wrap">${drS}</div></div></div>`;
+    el.innerHTML = ctxHtml + `<div class="script-opener-block" style="padding:0;overflow:hidden;"><div class="script-inner-tabs"><button class="script-inner-tab active" id="outreach-tab-gk" onclick="switchOutreachTab('gk')">السكرتيرة</button><button class="script-inner-tab" id="outreach-tab-doctor" onclick="switchOutreachTab('doctor')">الدكتور</button></div><div class="outreach-panel active" id="outreach-panel-gk"><div class="script-label">فاتحة السكرتيرة</div><div class="script-opener-text">${fill('مرحبا، إن شاله ما أزعجتك.\nمعك راشد، أنا طالب جامعي وعندي\nمشروع تخرج لازم أسلمه الخميس.').replace(/\n/g,'<br>')}</div><div class="script-bridge-text">${fill('بس محتاج رأي دكتور متخصص —\nهل بكون في مشكلة لو أخذت دقيقة\nوحدة بس من وقت الدكتور {{name}}؟\nبس عشان آخذ رأيه المهني.').replace(/\n/g,'<br>')}</div>${sL('السيناريوهات')}<div class="scenario-cards-wrap">${gkS}</div></div><div class="outreach-panel" id="outreach-panel-doctor"><div class="script-label">فاتحة الدكتور</div><div class="script-opener-text">${fill('مرحبا دكتور {{name}}، إن شاله ما أزعجتك.\nمعك راشد — حكت معي السكرتيرة إنك\nممكن تعطيني دقيقة.').replace(/\n/g,'<br>')}</div><div class="script-bridge-text">${fill('بكون صريح معك دكتور —\nأنا مش طالب جامعي.\nأنا راشد من ThreeUp، شركة متخصصة\nبتطوير العيادات في الأردن.\nبس ما كانوا رح يوصلوني إليك\nلو ما استخدمت هاد الأسلوب.\nهل بكون في مشكلة لو أخذت دقيقة وحدة بس؟\nوبعدها إذا ما كان الموضوع يهمك،\nما رح أزعجك مرة ثانية.').replace(/\n/g,'<br>')}</div>${sL('السيناريوهات')}<div class="scenario-cards-wrap">${drS}</div></div></div>`;
 
   } else if (script.type === 's5') {
-    function mapAdnanNote(n) {
-      if (!n) return '';
-      const m = {needs_time:'محتاج وقت يفكر بالموضوع',needs_to_discuss:'بدو يحكي مع شريك/زوجة قبل القرار',discuss_partner:'بدو يحكي مع شريكه',price:'متردد بسبب السعر / الميزانية',budget:'متردد بسبب السعر / الميزانية',competitor:'عنده نظام حالي / يستخدم منافس',has_system:'عنده نظام حالي / يستخدم منافس',busy:'مشغول، ما كان عنده وقت',not_sure:'مش متأكد من الفايدة'};
-      return m[n.toLowerCase()] || null;
-    }
     const noteKey = adnanNotes ? adnanNotes.trim() : '';
     const noteHuman = mapAdnanNote(noteKey);
     const monthlyValS5 = getFieldValue(c,'monthly_value');
@@ -1168,7 +1226,7 @@ function renderDetailCenter(c) {
       const clsMap = {blue:'sc-blue',orange:'sc-orange',green:'sc-green',red:'sc-red'};
       return `<div class="scenario-card ${clsMap[type]||''}"><button class="scenario-card-toggle" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.sc-chevron').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'"><span>${esc(label)}</span><span class="sc-chevron">▼</span></button><div class="scenario-card-body" id="${id}"><div class="scenario-card-text">${fill(text).replace(/\n/g,'<br>')}</div></div></div>`;
     }
-    el.innerHTML = warmGatekeeperBlock(name) +
+    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) +
       (refRows ? `<div style="background:#f8f6ff;border:1px solid var(--purple-light);border-radius:10px;padding:14px 16px;margin-bottom:12px;direction:rtl;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:13px;"><div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">📋 معلومات للمتابعة (لا تُقرأ بصوت عالي)</div>${refRows}</div>` : '') +
       openerBlock(
         'مرحبا دكتور {{name}}، معك راشد من ThreeUp.\nإن شاله ما أزعجتك؟ كيف أمورك دكتور؟',
@@ -1190,9 +1248,37 @@ function renderDetailCenter(c) {
       }
     }, 0);
 
+  } else if (script.type === 's5c') {
+    // meeting-done but >30 days stale — re-book fresh online discovery, don't push site visit
+    const noteKey5c = adnanNotes ? adnanNotes.trim() : '';
+    const noteHuman5c = mapAdnanNote(noteKey5c);
+    const monthlyVal5c = getFieldValue(c,'monthly_value');
+    const d1_5c = nextBizDay(new Date(), 1);
+    const d2_5c = nextBizDay(new Date(), 2);
+    const arM = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    const t1_5c = `${d1_5c.getDate()} ${arM[d1_5c.getMonth()]} الساعة 10 الصبح`;
+    const t2_5c = `${d2_5c.getDate()} ${arM[d2_5c.getMonth()]} الساعة 12 الظهر`;
+    const refRows5c = [
+      discDate ? `<div style="display:flex;gap:8px;margin-bottom:4px;"><span style="color:var(--muted);min-width:120px;">تاريخ الاجتماع الأول:</span><span>${esc(fmtDate(new Date(discDate)))}</span></div>` : '',
+      noteHuman5c ? `<div style="display:flex;gap:8px;margin-bottom:4px;"><span style="color:var(--muted);min-width:120px;">ملاحظات عدنان:</span><span>${esc(noteHuman5c)}</span></div>` : (noteKey5c ? `<div style="display:flex;gap:8px;margin-bottom:4px;"><span style="color:var(--muted);min-width:120px;">ملاحظات:</span><span>ملاحظة: ${esc(noteKey5c)}</span></div>` : ''),
+      spec ? `<div style="display:flex;gap:8px;margin-bottom:4px;"><span style="color:var(--muted);min-width:120px;">التخصص:</span><span>${esc(spec)}</span></div>` : '',
+      city ? `<div style="display:flex;gap:8px;margin-bottom:4px;"><span style="color:var(--muted);min-width:120px;">المدينة:</span><span>${esc(city)}</span></div>` : '',
+      monthlyVal5c ? `<div style="display:flex;gap:8px;margin-bottom:4px;"><span style="color:var(--muted);min-width:120px;">القيمة الشهرية:</span><span style="font-weight:600;color:var(--green-dark);">${esc(monthlyVal5c)}</span></div>` : ''
+    ].filter(Boolean).join('');
+    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) +
+      (refRows5c ? `<div style="background:#f8f6ff;border:1px solid var(--purple-light);border-radius:10px;padding:14px 16px;margin-bottom:12px;direction:rtl;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:13px;"><div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">📋 معلومات — لا تُقرأ بصوت</div>${refRows5c}</div>` : '') +
+      openerBlock(
+        '{{greeting}} دكتور {{name}}، معك راشد من ThreeUp.\nبعتذر عن الانقطاع — مر وقت من آخر ما تواصلنا،\nوكنت متابع تطورات عيادات {{specialty}} بالأردن.',
+        'كنا حكينا قبل فترة عن تطوير عيادتك، وحابب نبدأ من جديد بشكل صحيح.\nأفضل خطوة إنه نعمل اجتماع أونلاين قصير — 20 دقيقة بس —\nنراجع وضع العيادة الحالي ونحط خطة محدثة.\n\nهل بكون في مشكلة لو حجزنا — ' + t1_5c + ' أو ' + t2_5c + '؟'
+      ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${[
+        scenarioCard('blue','إذا قال ما بتذكر','ولا يهمك دكتور — منبدأ من جديد تماماً.\n20 دقيقة بس، وبعدها القرار إلك بالكامل.'),
+        scenarioCard('orange','إذا قال مش الوقت المناسب','بفهمك دكتور.\nهل بكون في مشكلة لو سألتك —\nالصبح ولا بعد الظهر بيكون أريح إلك هاسبوع؟'),
+        scenarioCard('orange','إذا ذكر السعر','منشوف الأرقام سوا بالاجتماع — بدون أي التزام.\nهل بكون في مشكلة لو حجزنا 20 دقيقة أونلاين\nوبعدها بتقرر على راحتك؟')
+      ].join('')}</div>`;
+
   } else if (script.type === 's6') {
-    el.innerHTML = warmGatekeeperBlock(name) + openerBlock(
-      'مرحبا دكتور {{name}}، معك راشد من ThreeUp.\nبعتذر عن الانقطاع الفترة الماضية —\nكنت متابع آخر تطورات سوق {{specialty}} في الأردن.',
+    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) + openerBlock(
+      '{{greeting}} دكتور {{name}}، معك راشد من ThreeUp.\nبعتذر عن الانقطاع الفترة الماضية —\nكنت متابع آخر تطورات سوق {{specialty}} في الأردن.',
       'لاحظت خلال الشهر الماضي إن عيادات\n{{specialty}} في {{city}} اللي طبقت\nنظام تنظيم المواعيد شافت فرق واضح\nبنسبة الإلغاء وعدد المرضى الجدد.\n\nهل بكون في مشكلة لو خصصنا 15 دقيقة\nأونلاين الأسبوع الجاي؟\nبوضحلك كيف ممكن ينعكس على عيادتك بالذات.'
     ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${[
       scenarioCard('blue','إذا قال اتصلت فينا قبل','صح دكتور، وبعتذر إنه التوقيت ما كان مناسب.\nهل بكون في مشكلة لو أخبرتني —\nشو اللي تغير من آخر مرة حكينا؟'),
@@ -1200,8 +1286,8 @@ function renderDetailCenter(c) {
     ].join('')}</div>`;
 
   } else if (script.type === 's7') {
-    el.innerHTML = warmGatekeeperBlock(name) + openerBlock(
-      'مرحبا دكتور {{name}}، معك راشد من ThreeUp.\nإن شاله ما أزعجتك.',
+    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) + openerBlock(
+      '{{greeting}} دكتور {{name}}، معك راشد من ThreeUp.\nإن شاله ما أزعجتك.',
       'حاولت أتواصل معك أكثر من مرة،\nوبفهم إنك مشغول أو ما كان الوقت مناسب.\nعشان هيك — هل بكون في مشكلة لو\nجربت ThreeUp مجاناً 10 أيام،\nبدون أي التزام أو دفع؟'
     ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${[
       scenarioCard('blue','إذا قال شو في المصيدة','ما في مصيدة دكتور.\nإحنا واثقين من النتيجة.\nهل بكون في مشكلة لو سألتك —\nشو اللي بيقنعك إننا جادين؟'),
@@ -1212,13 +1298,13 @@ function renderDetailCenter(c) {
   } else if (script.type === 's8') {
     const attempt = script.attempt || naCount;
     const s8map = {
-      1:'مرحبا دكتور {{name}}، إن شاله ما أزعجتك،\nمعك راشد من ThreeUp.\nحاولت أتصل فيك قبل شوي —\nهل بكون في مشكلة لو أخذت دقيقتين\nمن وقتك هلأ؟',
-      2:'مرحبا دكتور {{name}}، معك راشد من ThreeUp.\nإن شاله ما أزعجتك.\nتواصلت معك أمس وما قدرت توصلني —\nهل بكون في مشكلة لو حكيت معك دقيقتين؟',
-      3:'مرحبا دكتور {{name}}، معك راشد من ThreeUp.\nبعتذر على التواصل المتكرر —\nبس عندي شي بيخص عيادتك {{specialty}}\nفي {{city}} بالذات.\nهل بكون في مشكلة لو دقيقتين بس؟',
-      4:'مرحبا دكتور {{name}}، معك راشد من ThreeUp.\nآخر مرة بتواصل معك هاي الفترة —\nهل بكون في مشكلة لو سألتك سؤال واحد بس؟\nعيادتك هلأ — في مجال إنك تزيد عدد\nالمرضى الجدد، ولا أنت مكتفي؟'
+      1:'{{greeting}} دكتور {{name}}، إن شاله ما أزعجتك،\nمعك راشد من ThreeUp.\nحاولت أتصل فيك قبل شوي —\nهل بكون في مشكلة لو أخذت دقيقتين\nمن وقتك هلأ؟',
+      2:'{{greeting}} دكتور {{name}}، معك راشد من ThreeUp.\nإن شاله ما أزعجتك.\nتواصلت معك أمس وما قدرت توصلني —\nهل بكون في مشكلة لو حكيت معك دقيقتين؟',
+      3:'{{greeting}} دكتور {{name}}، معك راشد من ThreeUp.\nبعتذر على التواصل المتكرر —\nبس عندي شي بيخص عيادتك {{specialty}}\nفي {{city}} بالذات.\nهل بكون في مشكلة لو دقيقتين بس؟',
+      4:'{{greeting}} دكتور {{name}}، معك راشد من ThreeUp.\nآخر مرة بتواصل معك هاي الفترة —\nهل بكون في مشكلة لو سألتك سؤال واحد بس؟\nعيادتك هلأ — في مجال إنك تزيد عدد\nالمرضى الجدد، ولا أنت مكتفي؟'
     };
     const txt = s8map[attempt] || s8map[Math.min(attempt, 4)];
-    el.innerHTML = warmGatekeeperBlock(name) + `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;"><div style="font-weight:800;font-size:14px;font-family:'Syne',sans-serif;">محاولة #${attempt}</div><div style="font-size:11px;color:var(--muted);background:var(--off-white);padding:3px 10px;border-radius:8px;border:1px solid var(--border);">No Answer Sequence</div></div>${openerBlock(txt,'')}`;
+    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) + `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;"><div style="font-weight:800;font-size:14px;font-family:'Syne',sans-serif;">محاولة #${attempt}</div><div style="font-size:11px;color:var(--muted);background:var(--off-white);padding:3px 10px;border-radius:8px;border:1px solid var(--border);">No Answer Sequence</div></div>${openerBlock(txt,'')}`;
   }
 }
 
@@ -1267,14 +1353,20 @@ function renderDetailRight(c, stage) {
 ══════════════════════════════════════ */
 function getScript(c) {
   const naCount = getNoAnswerCount(c);
-  if (hasTag(c,'meeting-done') || getFieldValue(c,'meeting_done')==='yes') return {id:'s5',type:'s5'};
+  const daysSince = getDaysSinceContact(c);
+  const hasPendingBooking = hasTag(c,'meeting-booked') || hasTag(c,'site-visit') ||
+    getFieldValue(c,'meeting_booked')==='yes' || getFieldValue(c,'site_visit_booked')==='yes';
+  const stale = daysSince > 30 && !hasPendingBooking;
+
+  if (hasTag(c,'meeting-done') || getFieldValue(c,'meeting_done')==='yes')
+    return daysSince > 30 ? {id:'s5c',type:'s5c'} : {id:'s5',type:'s5'};
   if (naCount === 5) return {id:'s7',type:'s7'};
   if (naCount >= 4 || hasTag(c,'cold')) return {id:'s6',type:'s6'};
-  if (naCount >= 1) return {id:'s8',type:'s8',attempt:naCount};
-  if (hasTag(c,'outreach')) return {id:'s4',type:'s4'};
-  if (hasTag(c,'referral')) return {id:'s3',type:'s3'};
-  if (hasTag(c,'website')) return {id:'s2',type:'s2'};
-  return {id:'s1',type:'s1'};
+  if (naCount >= 1) return {id:'s8',type:'s8',attempt:naCount,stale};
+  if (hasTag(c,'outreach')) return {id:'s4',type:'s4',stale};
+  if (hasTag(c,'referral')) return {id:'s3',type:'s3',stale};
+  if (hasTag(c,'website')) return {id:'s2',type:'s2',stale};
+  return {id:'s1',type:'s1',stale};
 }
 /* ══════════════════════════════════════
    OUTCOME HANDLERS
