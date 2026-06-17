@@ -945,7 +945,7 @@ function renderDashboard(contacts) {
     document.getElementById(`${key}-count`).textContent = arr.length;
     const body = document.getElementById(`${key}-body`);
     body.innerHTML = arr.length
-      ? arr.map(c => renderLeadCard(c)).join('')
+      ? arr.map(c => { try { return renderLeadCard(c); } catch(e) { console.warn('[card] skipped', c.id, e); return ''; } }).join('')
       : `<div class="section-empty">No leads in this category</div>`;
   }
 }
@@ -972,10 +972,10 @@ function renderLeadCard(c) {
   const priCls = {urgent:'pill-urgent',scheduled:'pill-scheduled',warm:'pill-warm',cold:'pill-cold'}[pri]||'';
   const cbBadge = c._cbTime ? `<span class="callback-badge">📅 ${fmt12hr(c._cbTime)}</span>` : '';
   const naBadge = naCount > 0 ? `<span class="na-badge">↩ ${naCount}/6</span>` : '';
+  const phone = getContactPhone(c);
   const noPhoneBadge = !phone ? `<span class="na-badge" style="color:#e65c00;background:#fff4e0;border-color:#ffcc88;">⚠️ ناقص رقم</span>` : '';
   const touch = c._daysSince >= 9999 ? '—' : c._daysSince === 0 ? 'Today' : `${c._daysSince}d ago`;
   const meta = [spec,city].filter(Boolean).join(' · ');
-  const phone = getContactPhone(c);
   const waNum = phone ? fmtWhatsApp(phone) : '';
   const phoneHtml = phone
     ? `<a href="tel:${esc(phone)}" onclick="event.stopPropagation()" style="color:var(--purple);text-decoration:none;font-weight:600;">${esc(phone)}</a>&nbsp;<a href="https://wa.me/${waNum}" target="_blank" onclick="event.stopPropagation()" style="color:#25d366;text-decoration:none;" title="WhatsApp">💬</a>`
