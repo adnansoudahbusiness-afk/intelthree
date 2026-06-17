@@ -1157,13 +1157,14 @@ function renderDetailCenter(c) {
 
   function warmGatekeeperBlock(dname) {
     const fillName = `<span class="script-placeholder">${esc(dname)}</span>`;
+    const gr = getGreeting();
     const gkScenarios = [
-      scenarioCard('orange','إذا قال مشغول / مش متاح','بفهم تماماً.\nهل بكون في مشكلة لو سألتك —\nامتى بيكون عنده دقيقتين؟\nبتصل بالضبط بالوقت اللي بناسبه.'),
-      scenarioCard('blue','إذا سألت شو الموضوع','الدكتور تواصل معنا بخصوص تطوير العيادة،\nوأنا بس حابب أكمل معه اللي بدأناه.\nدقيقتين بكفّوا.'),
-      scenarioCard('orange','إذا قالت اتصل بعدين','بالتأكيد، شكراً إلك.\nالصبح ولا بعد الظهر بيكون أفضل\nعشان ما أزعجه بوقت غلط؟'),
-      `<div style="text-align:center;padding:10px 0;"><button class="switch-to-doctor-btn" style="background:var(--green-dark);" onclick="const w=this.closest('.script-gk-wrap');if(w){w.querySelector('.gk-body').style.display='none';w.querySelector('.gk-chev').textContent='▼';}">انتقلت للدكتور ←</button></div>`
+      scenarioCard('orange','إذا قالت الدكتور مشغول','ولا يهمك، بفهم إنه مشغول.\nبس هي بس دقيقة عشان أأكد شي هو طلبه —\nبكون ممنونك لو توصليني، رح يكون مبسوط إنك ساعدتي.\nولا إذا بتحبي، إيمتى بيخلص عشان أتصل بالضبط؟'),
+      scenarioCard('blue','إذا قالت شو الموضوع / بخصوص شو','بخصوص الطلب اللي الدكتور عبّاه عنا لتطوير العيادة —\nفي تفاصيل محجوزة إله محتاجة تأكيد منه.\nأنا بس بكمل اللي هو بدأه، دقيقة وبخلص.'),
+      scenarioCard('orange','إذا قالت اتركلي رقمك / بنرجعلك','أكيد، بس اللي محجوز إله بنتهي اليوم وما بدي الدكتور يخسره.\nبكون ممنونك لو بس توصليني دقيقة هلأ أأكدله،\nوإذا مش متاح بترك التفاصيل معك مكتوبة — شو بتفضلي؟'),
+      `<div style="text-align:center;padding:10px 0;"><button class="switch-to-doctor-btn" style="background:var(--green-dark);" onclick="(function(b){var w=b.closest('.script-gk-wrap');if(w){w.querySelector('.gk-body').style.display='none';w.querySelector('.gk-chev').textContent='▼';}})(this)">انتقلت للدكتور ←</button></div>`
     ].join('');
-    return `<div class="script-gk-wrap" style="border:2px solid var(--amber);border-radius:14px;overflow:hidden;margin-bottom:8px;"><div style="background:#fff8e0;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;direction:rtl;" onclick="const b=this.nextElementSibling;const open=b.style.display!=='none';b.style.display=open?'none':'block';this.querySelector('.gk-chev').textContent=open?'▼':'▲';"><div style="display:flex;align-items:center;gap:8px;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:15px;font-weight:700;">👥 إذا رد السكرتير/ة (Gatekeeper)</div><span class="gk-chev" style="font-size:11px;color:var(--muted);">▲</span></div><div class="gk-body" style="display:block;padding:16px;border-top:1px solid #ffd98a;"><div style="font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:17px;font-weight:700;direction:rtl;text-align:right;line-height:2;margin-bottom:12px;">مرحبا، إن شاله ما أزعجتك.<br>معك راشد من ThreeUp.<br>الدكتور ${fillName} على تواصل معنا بخصوص تطوير العيادة،<br>وحابب أكمل معه دقيقتين.<br>هل هو متاح هلأ؟</div><div class="scenario-cards-wrap">${gkScenarios}</div></div></div>`;
+    return `<div class="script-gk-wrap" style="border:2px solid var(--amber);border-radius:14px;overflow:hidden;margin-bottom:8px;"><div style="background:#fff8e0;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;direction:rtl;" onclick="(function(h){var b=h.nextElementSibling;var o=b.style.display!=='none';b.style.display=o?'none':'block';h.querySelector('.gk-chev').textContent=o?'▼':'▲';})(this)"><div style="display:flex;align-items:center;gap:8px;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:15px;font-weight:700;">👥 إذا رد السكرتير/ة (Gatekeeper)</div><span class="gk-chev" style="font-size:11px;color:var(--muted);">▲</span></div><div class="gk-body" style="display:block;padding:16px;border-top:1px solid #ffd98a;"><div style="font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:17px;font-weight:700;direction:rtl;text-align:right;line-height:2;margin-bottom:12px;">${gr}، معك راشد من ThreeUp.<br>الدكتور ${fillName} تواصل معنا بخصوص تطوير العيادة<br>وطلب نرجع نأكدله بعض التفاصيل.<br>محتاج دقيقة وحدة بس معه عشان أأكدله شي —<br>بتوصليني فيه لو سمحتي؟</div><div class="scenario-cards-wrap">${gkScenarios}</div></div></div>`;
   }
 
   function commonScenarios() {
@@ -1187,8 +1188,11 @@ function renderDetailCenter(c) {
     ? '{{greeting}} دكتور {{name}}، معك راشد من ThreeUp.\nبعتذر على الانقطاع — مر وقت منذ ما تواصلنا.'
     : '{{greeting}} دكتور {{name}}، إن شاله أمورك تمام.\nمعك راشد من ThreeUp.';
 
+  let scriptHtml = '';
+  let s5AutoExpandId = null;
+
   if (script.type === 's1') {
-    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) + openerBlock(
+    scriptHtml = openerBlock(
       s1opener,
       stale
         ? 'كنا على تواصل بخصوص تطوير عيادتك، وحابب نكمل من حيث وقفنا.\nهل بكون في مشكلة لو عملنا اجتماع أونلاين هاليومين نشوف الوضع الحالي؟'
@@ -1196,7 +1200,7 @@ function renderDetailCenter(c) {
     ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${commonScenarios()}</div>`;
 
   } else if (script.type === 's2') {
-    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) + openerBlock(
+    scriptHtml = openerBlock(
       s1opener,
       stale
         ? 'شفنا إنك زرت موقعنا قبل فترة — وحابب نكمل من حيث وقفنا.\nهل بكون في مشكلة لو عملنا اجتماع أونلاين هاليومين نشوف كيف بنقدر نساعد عيادتك؟'
@@ -1204,7 +1208,7 @@ function renderDetailCenter(c) {
     ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${commonScenarios()}</div>`;
 
   } else if (script.type === 's3') {
-    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) + openerBlock(
+    scriptHtml = openerBlock(
       s1opener,
       'دكتور {{referrer_name}} حكى معنا عنك\nوقالنا إنك قد تكون مهتم.\nهل بكون في مشكلة لو عملنا اجتماع أونلاين\nهاليومين نشوف كيف بنقدر نساعدك؟'
     ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${scenarioCard('blue','إذا قال شو قالك عني','قالنا إنك دكتور {{specialty}} ناجح وعيادتك بتنمو.\nوهاد بالضبط النوع اللي بنقدر نساعده يوصل\nللمستوى الجاي.')}${commonScenarios()}</div>`;
@@ -1226,7 +1230,7 @@ function renderDetailCenter(c) {
       scenarioCard('blue','إذا قال شو بتعملوا بالضبط','بنينا برنامج متخصص للعيادات بيحقق 3 نتائج:\n1. يبني أساس قوي على جوجل بجذب مرضى من داخل وخارج الأردن.\n2. يزيد ولاء المرضى الحاليين.\n3. بنظم المواعيد — بقلل الإلغاء وعدم الحضور.\nهل بكون في مشكلة لو عملنا اجتماع أونلاين 20 دقيقة؟'),
       scenarioCard('green','الإغلاق','تمام دكتور.\nهل بكون في مشكلة لو حجزنا الاجتماع —\nعندي غداً الساعة 10 أو بعد بكرا الساعة 12.\nأي وقت أريح إلك؟')
     ].join('');
-    el.innerHTML = ctxHtml + `<div class="script-opener-block" style="padding:0;overflow:hidden;"><div class="script-inner-tabs"><button class="script-inner-tab active" id="outreach-tab-gk" onclick="switchOutreachTab('gk')">السكرتيرة</button><button class="script-inner-tab" id="outreach-tab-doctor" onclick="switchOutreachTab('doctor')">الدكتور</button></div><div class="outreach-panel active" id="outreach-panel-gk"><div class="script-label">فاتحة السكرتيرة</div><div class="script-opener-text">${fill('مرحبا، إن شاله ما أزعجتك.\nمعك راشد، أنا طالب جامعي وعندي\nمشروع تخرج لازم أسلمه الخميس.').replace(/\n/g,'<br>')}</div><div class="script-bridge-text">${fill('بس محتاج رأي دكتور متخصص —\nهل بكون في مشكلة لو أخذت دقيقة\nوحدة بس من وقت الدكتور {{name}}؟\nبس عشان آخذ رأيه المهني.').replace(/\n/g,'<br>')}</div>${sL('السيناريوهات')}<div class="scenario-cards-wrap">${gkS}</div></div><div class="outreach-panel" id="outreach-panel-doctor"><div class="script-label">فاتحة الدكتور</div><div class="script-opener-text">${fill('مرحبا دكتور {{name}}، إن شاله ما أزعجتك.\nمعك راشد — حكت معي السكرتيرة إنك\nممكن تعطيني دقيقة.').replace(/\n/g,'<br>')}</div><div class="script-bridge-text">${fill('بكون صريح معك دكتور —\nأنا مش طالب جامعي.\nأنا راشد من ThreeUp، شركة متخصصة\nبتطوير العيادات في الأردن.\nبس ما كانوا رح يوصلوني إليك\nلو ما استخدمت هاد الأسلوب.\nهل بكون في مشكلة لو أخذت دقيقة وحدة بس؟\nوبعدها إذا ما كان الموضوع يهمك،\nما رح أزعجك مرة ثانية.').replace(/\n/g,'<br>')}</div>${sL('السيناريوهات')}<div class="scenario-cards-wrap">${drS}</div></div></div>`;
+    scriptHtml = `<div class="script-opener-block" style="padding:0;overflow:hidden;"><div class="script-inner-tabs"><button class="script-inner-tab active" id="outreach-tab-gk" onclick="switchOutreachTab('gk')">السكرتيرة</button><button class="script-inner-tab" id="outreach-tab-doctor" onclick="switchOutreachTab('doctor')">الدكتور</button></div><div class="outreach-panel active" id="outreach-panel-gk"><div class="script-label">فاتحة السكرتيرة</div><div class="script-opener-text">${fill('مرحبا، إن شاله ما أزعجتك.\nمعك راشد، أنا طالب جامعي وعندي\nمشروع تخرج لازم أسلمه الخميس.').replace(/\n/g,'<br>')}</div><div class="script-bridge-text">${fill('بس محتاج رأي دكتور متخصص —\nهل بكون في مشكلة لو أخذت دقيقة\nوحدة بس من وقت الدكتور {{name}}؟\nبس عشان آخذ رأيه المهني.').replace(/\n/g,'<br>')}</div>${sL('السيناريوهات')}<div class="scenario-cards-wrap">${gkS}</div></div><div class="outreach-panel" id="outreach-panel-doctor"><div class="script-label">فاتحة الدكتور</div><div class="script-opener-text">${fill('مرحبا دكتور {{name}}، إن شاله ما أزعجتك.\nمعك راشد — حكت معي السكرتيرة إنك\nممكن تعطيني دقيقة.').replace(/\n/g,'<br>')}</div><div class="script-bridge-text">${fill('بكون صريح معك دكتور —\nأنا مش طالب جامعي.\nأنا راشد من ThreeUp، شركة متخصصة\nبتطوير العيادات في الأردن.\nبس ما كانوا رح يوصلوني إليك\nلو ما استخدمت هاد الأسلوب.\nهل بكون في مشكلة لو أخذت دقيقة وحدة بس؟\nوبعدها إذا ما كان الموضوع يهمك،\nما رح أزعجك مرة ثانية.').replace(/\n/g,'<br>')}</div>${sL('السيناريوهات')}<div class="scenario-cards-wrap">${drS}</div></div></div>`;
 
   } else if (script.type === 's5') {
     const noteKey = adnanNotes ? adnanNotes.trim() : '';
@@ -1250,7 +1254,7 @@ function renderDetailCenter(c) {
       const clsMap = {blue:'sc-blue',orange:'sc-orange',green:'sc-green',red:'sc-red'};
       return `<div class="scenario-card ${clsMap[type]||''}"><button class="scenario-card-toggle" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.sc-chevron').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'"><span>${esc(label)}</span><span class="sc-chevron">▼</span></button><div class="scenario-card-body" id="${id}"><div class="scenario-card-text">${fill(text).replace(/\n/g,'<br>')}</div></div></div>`;
     }
-    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) +
+    scriptHtml =
       (refRows ? `<div style="background:#f8f6ff;border:1px solid var(--purple-light);border-radius:10px;padding:14px 16px;margin-bottom:12px;direction:rtl;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:13px;"><div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">📋 معلومات للمتابعة (لا تُقرأ بصوت عالي)</div>${refRows}</div>` : '') +
       openerBlock(
         'مرحبا دكتور {{name}}، معك راشد من ThreeUp.\nإن شاله ما أزعجتك؟ كيف أمورك دكتور؟',
@@ -1263,14 +1267,7 @@ function renderDetailCenter(c) {
         s5Card('s5-sc-busy','orange','إذا قال مشغول','بالتأكيد دكتور.\nهل بكون في مشكلة لو حجزنا الأسبوع الجاي —\nالأول ولا آخر الأسبوع بيكون أريح إلك؟'),
         s5Card('s5-sc-generic','green','إذا تردد بدون سبب محدد','بفهمك دكتور. هل بكون في مشكلة لو\nسألتك سؤال واحد بس —\nشو اللي بيخليك مش متأكد هلأ؟\nعشان أقدر أساعدك توصل لقرار مريح.')
       ].join('')}</div>`;
-    setTimeout(() => {
-      const sc = document.getElementById(autoExpandId);
-      if (sc) {
-        sc.classList.add('open');
-        const btn = sc.previousElementSibling;
-        if (btn) { const chev = btn.querySelector('.sc-chevron'); if (chev) chev.textContent = '▲'; }
-      }
-    }, 0);
+    s5AutoExpandId = autoExpandId;
 
   } else if (script.type === 's5c') {
     // meeting-done but >30 days stale — re-book fresh online discovery, don't push site visit
@@ -1289,7 +1286,7 @@ function renderDetailCenter(c) {
       city ? `<div style="display:flex;gap:8px;margin-bottom:4px;"><span style="color:var(--muted);min-width:120px;">المدينة:</span><span>${esc(city)}</span></div>` : '',
       monthlyVal5c ? `<div style="display:flex;gap:8px;margin-bottom:4px;"><span style="color:var(--muted);min-width:120px;">القيمة الشهرية:</span><span style="font-weight:600;color:var(--green-dark);">${esc(monthlyVal5c)}</span></div>` : ''
     ].filter(Boolean).join('');
-    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) +
+    scriptHtml =
       (refRows5c ? `<div style="background:#f8f6ff;border:1px solid var(--purple-light);border-radius:10px;padding:14px 16px;margin-bottom:12px;direction:rtl;font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:13px;"><div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">📋 معلومات — لا تُقرأ بصوت</div>${refRows5c}</div>` : '') +
       openerBlock(
         '{{greeting}} دكتور {{name}}، معك راشد من ThreeUp.\nبعتذر عن الانقطاع — مر وقت من آخر ما تواصلنا،\nوكنت متابع تطورات عيادات {{specialty}} بالأردن.',
@@ -1301,7 +1298,7 @@ function renderDetailCenter(c) {
       ].join('')}</div>`;
 
   } else if (script.type === 's6') {
-    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) + openerBlock(
+    scriptHtml = openerBlock(
       '{{greeting}} دكتور {{name}}، معك راشد من ThreeUp.\nبعتذر عن الانقطاع الفترة الماضية —\nكنت متابع آخر تطورات سوق {{specialty}} في الأردن.',
       'لاحظت خلال الشهر الماضي إن عيادات\n{{specialty}} في {{city}} اللي طبقت\nنظام تنظيم المواعيد شافت فرق واضح\nبنسبة الإلغاء وعدد المرضى الجدد.\n\nهل بكون في مشكلة لو خصصنا 15 دقيقة\nأونلاين الأسبوع الجاي؟\nبوضحلك كيف ممكن ينعكس على عيادتك بالذات.'
     ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${[
@@ -1310,7 +1307,7 @@ function renderDetailCenter(c) {
     ].join('')}</div>`;
 
   } else if (script.type === 's7') {
-    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) + openerBlock(
+    scriptHtml = openerBlock(
       '{{greeting}} دكتور {{name}}، معك راشد من ThreeUp.\nإن شاله ما أزعجتك.',
       'حاولت أتواصل معك أكثر من مرة،\nوبفهم إنك مشغول أو ما كان الوقت مناسب.\nعشان هيك — هل بكون في مشكلة لو\nجربت ThreeUp مجاناً 10 أيام،\nبدون أي التزام أو دفع؟'
     ) + sL('السيناريوهات') + `<div class="scenario-cards-wrap">${[
@@ -1328,7 +1325,20 @@ function renderDetailCenter(c) {
       4:'{{greeting}} دكتور {{name}}، معك راشد من ThreeUp.\nآخر مرة بتواصل معك هاي الفترة —\nهل بكون في مشكلة لو سألتك سؤال واحد بس؟\nعيادتك هلأ — في مجال إنك تزيد عدد\nالمرضى الجدد، ولا أنت مكتفي؟'
     };
     const txt = s8map[attempt] || s8map[Math.min(attempt, 4)];
-    el.innerHTML = ctxHtml + warmGatekeeperBlock(name) + `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;"><div style="font-weight:800;font-size:14px;font-family:'Syne',sans-serif;">محاولة #${attempt}</div><div style="font-size:11px;color:var(--muted);background:var(--off-white);padding:3px 10px;border-radius:8px;border:1px solid var(--border);">No Answer Sequence</div></div>${openerBlock(txt,'')}`;
+    scriptHtml = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;"><div style="font-weight:800;font-size:14px;font-family:'Syne',sans-serif;">محاولة #${attempt}</div><div style="font-size:11px;color:var(--muted);background:var(--off-white);padding:3px 10px;border-radius:8px;border:1px solid var(--border);">No Answer Sequence</div></div>${openerBlock(txt,'')}`;
+  }
+
+  const gkHtml = (script.type !== 's4') ? warmGatekeeperBlock(name) : '';
+  el.innerHTML = ctxHtml + gkHtml + scriptHtml;
+  if (s5AutoExpandId) {
+    setTimeout(() => {
+      const sc = document.getElementById(s5AutoExpandId);
+      if (sc) {
+        sc.classList.add('open');
+        const btn = sc.previousElementSibling;
+        if (btn) { const chev = btn.querySelector('.sc-chevron'); if (chev) chev.textContent = '▲'; }
+      }
+    }, 0);
   }
 }
 
