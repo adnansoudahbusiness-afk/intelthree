@@ -355,7 +355,7 @@ h1,h2,h3,.logo{font-family:'Syne',sans-serif;}
 
 /* ── CONFIG ── */
 const CFG = {
-  ghlKey: 'pit-cc34a5f9-fe31-42ff-acbc-c9cf72715da1',
+  ghlKey: 'pit-5fe4c7a5-aa93-4b13-a034-4ac42ffba273',
   ghlLoc: 'ck8gYVHUEnLEIg0OVsLd',
   ghlBase: 'https://services.leadconnectorhq.com',
   sheetId: '12KEc1_CIkAHpfA74y660zsWSGnkbcSoltcSosuk4smA',
@@ -534,21 +534,43 @@ const GHL_HEADERS = () => ({
 
 async function fetchAllCleanedContacts() {
   const contacts = [];
-  let page = 1;
-  let hasMore = true;
-  while (hasMore) {
-    const res = await fetch(
-      `${CFG.ghlBase}/contacts/?locationId=${CFG.ghlLoc}&limit=100&page=${page}`,
-      {headers: GHL_HEADERS()}
-    );
-    if (!res.ok) throw new Error(`GHL fetch failed: ${res.status}`);
-    const data = await res.json();
+  let startAfter   = null;
+  let startAfterId = null;
+  const MAX_PAGES  = 30;
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    let url = `${CFG.ghlBase}/contacts/?locationId=${CFG.ghlLoc}&limit=100`;
+    if (startAfter)   url += `&startAfter=${encodeURIComponent(startAfter)}`;
+    if (startAfterId) url += `&startAfterId=${encodeURIComponent(startAfterId)}`;
+
+    let res, data;
+    try {
+      res = await fetch(url, {headers: GHL_HEADERS()});
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        console.warn(`[GHL] page ${page+1} returned HTTP ${res.status}:`, body);
+        break;
+      }
+      data = await res.json();
+    } catch(e) {
+      console.warn(`[GHL] page ${page+1} network error:`, e.message);
+      break;
+    }
+
     const list = data.contacts || [];
     const cleaned = list.filter(c => c.tags && c.tags.includes('cleanup-done'));
     contacts.push(...cleaned);
-    if (list.length < 100 || contacts.length >= (data.meta?.total || 0)) hasMore = false;
-    page++;
+    console.log(`[GHL] page ${page+1}: ${list.length} returned, ${cleaned.length} cleanup-done (total so far: ${contacts.length})`);
+
+    const meta = data.meta || {};
+    if (!list.length || !meta.startAfterId) break;
+    if (meta.total && contacts.length >= meta.total) break;
+
+    startAfter   = meta.startAfter   || null;
+    startAfterId = meta.startAfterId;
   }
+
+  console.log(`[GHL] fetch complete — ${contacts.length} contacts with cleanup-done tag`);
   return contacts;
 }
 
