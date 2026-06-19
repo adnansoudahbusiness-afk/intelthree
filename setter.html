@@ -1644,7 +1644,7 @@ function outcomeCallback() {
   const nbd = nextBizDay(new Date(),1).toISOString().split('T')[0];
   showModal(`
     <div class="modal-title">📅 Callback Scheduled</div>
-    <div class="modal-sub">Sun–Thu only, 10am–7pm</div>
+    <div class="modal-sub">10am–7pm Amman time</div>
     <div class="modal-field"><label class="modal-label">Date</label>
       <input type="date" id="m-date" class="modal-input" value="${nbd}" min="${todayStr()}"></div>
     <div class="modal-field"><label class="modal-label">Time</label>
@@ -1662,7 +1662,6 @@ async function confirmCallback(t) {
   const time = document.getElementById('m-time').value;
   if (!date||!time) return toast('Select date and time','error');
   const sel = new Date(date+'T12:00:00');
-  if (!isBizDay(sel)) return toast('Select a business day (Sun–Thu)','error');
   const c = currentContact;
   const tagDate = `${date}-${time.replace(':','-')}`;
   const note = document.getElementById('m-note')?.value || '';
@@ -1862,10 +1861,10 @@ function logAction(entry) {
 /* ══════════════════════════════════════
    BUSINESS DAY UTILS
 ══════════════════════════════════════ */
-function isBizDay(d) { const day=d.getDay(); return day>=0&&day<=4; }
+function isBizDay(d) { return true; }
 function nextBizDay(from, n=1) {
-  const d=new Date(from); let added=0;
-  while(added<n){d.setDate(d.getDate()+1);if(isBizDay(d))added++;}
+  const d=new Date(from);
+  d.setDate(d.getDate()+n);
   return d;
 }
 function nextRetryTime() { const d=nextBizDay(new Date(),1); d.setHours(10,0,0,0); return d; }
