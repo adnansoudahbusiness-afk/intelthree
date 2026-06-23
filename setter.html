@@ -724,11 +724,18 @@ async function createCalendarAppointment(contactId, contactName, appointmentType
     siteVisit: `زيارة عيادة - ${contactName}`,
     callback:  `Callback - ${contactName}`
   };
-  const startTime = new Date(dateTime).toISOString();
-  const endTime   = new Date(new Date(dateTime).getTime() + 30 * 60000).toISOString();
+
+  // Build times with explicit Amman offset (UTC+3, Jordan has no DST since 2022)
+  const baseDateTime = dateTime.replace(/Z$|[+-]\d{2}:\d{2}$/, '');
+  const startTime = baseDateTime + '+03:00';
+  const startUTC  = new Date(startTime);
+  const endUTC    = new Date(startUTC.getTime() + 30 * 60000);
+  // Express endTime in Amman local (+03:00) — shift UTC by 3h then format as +03:00
+  const endTime   = new Date(endUTC.getTime() + 3 * 3600000).toISOString().slice(0, 19) + '+03:00';
 
   const body = {
     calendarId: calendarIds[appointmentType],
+    locationId: CFG.ghlLoc,
     selectedTimezone: 'Asia/Amman',
     startTime,
     endTime,
@@ -740,19 +747,26 @@ async function createCalendarAppointment(contactId, contactName, appointmentType
     contactId
   };
 
+  console.log('[CalAppt] type:', appointmentType, '| startTime:', startTime, '| endTime:', endTime);
+  console.log('[CalAppt] full body:', JSON.stringify(body));
+
   const response = await fetch(`${CFG.ghlBase}/calendars/events/appointments`, {
     method: 'POST',
     headers: GHL_HEADERS(),
     body: JSON.stringify(body)
   });
 
+  console.log('[CalAppt] response status:', response.status);
+
   if (!response.ok) {
-    const error = await response.text();
-    console.error('Calendar appointment error:', error);
-    throw new Error('Failed to create calendar appointment');
+    const errorBody = await response.text();
+    console.error('[CalAppt] error body:', errorBody);
+    throw new Error(`GHL calendar (${response.status}): ${errorBody.slice(0, 300)}`);
   }
 
-  return await response.json();
+  const result = await response.json();
+  console.log('[CalAppt] success:', JSON.stringify(result).slice(0, 300));
+  return result;
 }
 
 /* ══════════════════════════════════════
@@ -1473,6 +1487,7 @@ function renderDetailRight(c, stage) {
     <button class="outcome-btn primary" onclick="outcomeOnlineMeeting()">✅ حجز اجتماع أونلاين</button>
     <button class="outcome-btn primary" onclick="outcomeSiteVisit()">✅ حجز زيارة عيادة</button>
     <button class="outcome-btn" onclick="outcomeCallback()">📅 Callback Scheduled</button>
+    <div style="background:#fff8e0;border:1px solid #ffd98a;border-radius:8px;padding:5px 10px;font-size:11px;color:var(--amber-dark);text-align:center;direction:rtl;">محاولة رقم: <strong>${naCount + 1}</strong>${naCount > 0 ? ` (${naCount} سابقة)` : ''}</div>
     <button class="outcome-btn" onclick="outcomeNoAnswer()">🔄 No Answer ${naCount>0?`(${naCount}/6)`:''}</button>
     <button class="outcome-btn" onclick="outcomeSpokeNotReady()">💬 Spoke — Not Ready</button>
     <hr class="outcome-sep">
@@ -1549,7 +1564,7 @@ async function confirmDiscovery(t) {
     toast('✓ Appointment added to calendar','success');
   } catch(e) {
     console.warn('Calendar sync failed:', e.message);
-    toast('⚠ Contact updated but calendar sync failed','warning');
+    toast('⚠ فشل حفظ الموعد: ' + e.message.slice(0, 120), 'warning');
   }
 }
 
@@ -1593,7 +1608,7 @@ async function confirmOnlineMeeting(t) {
     toast('✓ Online meeting added to calendar','success');
   } catch(e) {
     console.warn('Calendar sync failed:', e.message);
-    toast('⚠ Contact updated but calendar sync failed','warning');
+    toast('⚠ فشل حفظ الموعد: ' + e.message.slice(0, 120), 'warning');
   }
 }
 
@@ -1635,7 +1650,7 @@ async function confirmSiteVisit(t) {
     toast('✓ Appointment added to calendar','success');
   } catch(e) {
     console.warn('Calendar sync failed:', e.message);
-    toast('⚠ Contact updated but calendar sync failed','warning');
+    toast('⚠ فشل حفظ الموعد: ' + e.message.slice(0, 120), 'warning');
   }
 }
 
@@ -1681,7 +1696,7 @@ async function confirmCallback(t) {
     toast('✓ Appointment added to calendar','success');
   } catch(e) {
     console.warn('Calendar sync failed:', e.message);
-    toast('⚠ Contact updated but calendar sync failed','warning');
+    toast('⚠ فشل حفظ الموعد: ' + e.message.slice(0, 120), 'warning');
   }
 }
 
@@ -1690,9 +1705,11 @@ function outcomeNoAnswer() {
   const c = currentContact;
   const cur = getNoAnswerCount(c);
   const next = cur + 1;
+  console.log('[OutcomeNoAnswer] contactId:', c?.id, '| customFields:', JSON.stringify((c?.customFields||[]).slice(0,8)));
+  console.log('[OutcomeNoAnswer] getNoAnswerCount =', cur, '→ next will be', next);
   showModal(`
     <div class="modal-title">🔄 No Answer</div>
-    <div class="modal-sub">Attempt #${next} of 6</div>
+    <div class="modal-sub">محاولة رقم ${next} من 6</div>
     ${next >= 6
       ? `<div class="warning-box">⚠️ After this, lead moves to Free Trial sequence.</div>`
       : `<div class="info-box"><strong>Attempt:</strong> ${next} / 6 — count saved to GHL</div>`}
@@ -1710,7 +1727,17 @@ async function confirmNoAnswer(t, newCount) {
     const fieldPayload = fieldId
       ? { id: fieldId, field_value: String(newCount) }
       : { key: 'no_answer_count', field_value: String(newCount) };
-    await ghlUpdateContact(c.id, { customFields: [fieldPayload] });
+
+    console.log('[NoAnswer] Contact:', c.id, getContactName(c));
+    console.log('[NoAnswer] Count in cache (before):', getNoAnswerCount(c), '→ saving newCount:', newCount);
+    console.log('[NoAnswer] fieldId:', fieldId, '| payload:', JSON.stringify(fieldPayload));
+
+    const updateResult = await ghlUpdateContact(c.id, { customFields: [fieldPayload] });
+    const updatedContact = updateResult.contact || updateResult;
+    const savedCFs = (updatedContact.customFields || updatedContact.customField || []);
+    const savedField = savedCFs.find(f => f.key === 'no_answer_count' || f.id === fieldId);
+    console.log('[NoAnswer] GHL PUT response — no_answer_count field:', JSON.stringify(savedField));
+
     const oldRetryTags = (c.tags || []).filter(tag => tag.startsWith('no-answer-retry-'));
     for (const tag of oldRetryTags) { try { await ghlRemoveTag(c.id, tag); } catch(e) {} }
     if (newCount >= 6) {
@@ -1725,6 +1752,10 @@ async function confirmNoAnswer(t, newCount) {
     await new Promise(resolve => setTimeout(resolve, 2000));
     await ghlAddTag(c.id, 'no-answer');
     await ghlRefreshContact(c.id);
+
+    const refreshed = allContacts.find(x => x.id === c.id);
+    console.log('[NoAnswer] Count read from GHL after refresh:', refreshed ? getNoAnswerCount(refreshed) : 'contact not in list');
+
     logAction({action:'no_answer', leadId:c.id, leadName:getContactName(c), timeOnLead:t,
       suspicious:isSuspicious(t), reason:isSuspicious(t)?'outcome_clicked_under_30_seconds':null,
       metadata:{attemptNumber:newCount}});
