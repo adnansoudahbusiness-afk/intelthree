@@ -520,6 +520,8 @@ let filterSource = '';
 let filterSpecialty = '';
 let searchDebounce = null;
 let addContactDupBlocked = false;
+let NA_FIELD_ID = null;
+const CAL_USER_CACHE = {};
 let googleToken = null;
 let googleTokenExp = 0;
 let sectionOpen = { urgent:true, scheduled:true, warm:true, cold:true };
@@ -711,6 +713,51 @@ async function ghlRefreshContact(contactId) {
   } catch(e) { /* silent */ }
 }
 
+async function discoverNoAnswerFieldId() {
+  try {
+    const res = await fetch(`${CFG.ghlBase}/locations/${CFG.ghlLoc}/customFields`, { headers: GHL_HEADERS() });
+    console.log('[NA] GET /customFields status:', res.status);
+    if (!res.ok) { console.warn('[NA] customFields fetch failed:', res.status); return; }
+    const data = await res.json();
+    const fields = data.customFields || data.fields || [];
+    const f = fields.find(f =>
+      f.fieldKey === 'no_answer_count' || f.key === 'no_answer_count' ||
+      (f.name && f.name.toLowerCase().replace(/\s/g,'_') === 'no_answer_count')
+    );
+    if (f) {
+      NA_FIELD_ID = f.id;
+      console.log('[NA] discovered field id:', NA_FIELD_ID, '| fieldKey:', f.fieldKey || f.key, '| name:', f.name);
+    } else {
+      console.warn('[NA] no_answer_count not found. Available fields:', JSON.stringify(fields.map(x => ({ id:x.id, key:x.fieldKey||x.key, name:x.name }))));
+    }
+  } catch(e) {
+    console.warn('[NA] discoverNoAnswerFieldId error:', e.message);
+  }
+}
+
+async function discoverCalendarUserId(calendarId) {
+  if (CAL_USER_CACHE[calendarId] !== undefined) {
+    console.log('[CalAppt] cached assignedUserId for', calendarId, ':', CAL_USER_CACHE[calendarId]);
+    return CAL_USER_CACHE[calendarId];
+  }
+  try {
+    const res = await fetch(`${CFG.ghlBase}/calendars/${calendarId}`, { headers: GHL_HEADERS() });
+    console.log('[CalAppt] GET /calendars/', calendarId, 'status:', res.status);
+    if (!res.ok) { CAL_USER_CACHE[calendarId] = null; return null; }
+    const data = await res.json();
+    const cal = data.calendar || data;
+    console.log('[CalAppt] calendar snippet:', JSON.stringify(cal).slice(0, 400));
+    const userId = (cal.teamMembers && cal.teamMembers[0] && cal.teamMembers[0].userId) || cal.ownerId || null;
+    console.log('[CalAppt] discovered assignedUserId:', userId, 'for calendarId:', calendarId);
+    CAL_USER_CACHE[calendarId] = userId;
+    return userId;
+  } catch(e) {
+    console.warn('[CalAppt] calendar discovery failed:', e.message);
+    CAL_USER_CACHE[calendarId] = null;
+    return null;
+  }
+}
+
 async function createCalendarAppointment(contactId, contactName, appointmentType, dateTime) {
   const calendarIds = {
     online:    CAL_ONLINE,
@@ -725,30 +772,36 @@ async function createCalendarAppointment(contactId, contactName, appointmentType
     callback:  `Callback - ${contactName}`
   };
 
-  // Build times with explicit Amman offset (UTC+3, Jordan has no DST since 2022)
+  const calId = calendarIds[appointmentType];
+
+  // Explicit Amman offset (UTC+3, Jordan no DST since 2022)
   const baseDateTime = dateTime.replace(/Z$|[+-]\d{2}:\d{2}$/, '');
   const startTime = baseDateTime + '+03:00';
   const startUTC  = new Date(startTime);
   const endUTC    = new Date(startUTC.getTime() + 30 * 60000);
-  // Express endTime in Amman local (+03:00) — shift UTC by 3h then format as +03:00
   const endTime   = new Date(endUTC.getTime() + 3 * 3600000).toISOString().slice(0, 19) + '+03:00';
 
+  // Discover calendar assignedUserId (some calendars require it)
+  const assignedUserId = await discoverCalendarUserId(calId);
+
   const body = {
-    calendarId: calendarIds[appointmentType],
+    calendarId: calId,
     locationId: CFG.ghlLoc,
-    selectedTimezone: 'Asia/Amman',
+    contactId,
     startTime,
     endTime,
     title: titles[appointmentType] || `Appointment - ${contactName}`,
     appointmentStatus: 'confirmed',
     address: appointmentType === 'siteVisit' ? 'On-site at clinic' : 'Online Meeting',
-    ignoreDateRange: false,
-    toNotify: true,
-    contactId
+    meetingLocationType: 'custom',
+    ignoreDateRange: true,
+    toNotify: true
   };
+  if (assignedUserId) body.assignedUserId = assignedUserId;
 
   console.log('[CalAppt] type:', appointmentType, '| startTime:', startTime, '| endTime:', endTime);
-  console.log('[CalAppt] full body:', JSON.stringify(body));
+  console.log('[CalAppt] assignedUserId:', assignedUserId);
+  console.log('[CalAppt] full request body:', JSON.stringify(body));
 
   const response = await fetch(`${CFG.ghlBase}/calendars/events/appointments`, {
     method: 'POST',
@@ -756,16 +809,17 @@ async function createCalendarAppointment(contactId, contactName, appointmentType
     body: JSON.stringify(body)
   });
 
+  const responseText = await response.text();
   console.log('[CalAppt] response status:', response.status);
+  console.log('[CalAppt] response body:', responseText.slice(0, 500));
 
   if (!response.ok) {
-    const errorBody = await response.text();
-    console.error('[CalAppt] error body:', errorBody);
-    throw new Error(`GHL calendar (${response.status}): ${errorBody.slice(0, 300)}`);
+    console.error('[CalAppt] FAILED — sent body:', JSON.stringify(body));
+    throw new Error(`GHL calendar (${response.status}): ${responseText.slice(0, 300)}`);
   }
 
-  const result = await response.json();
-  console.log('[CalAppt] success:', JSON.stringify(result).slice(0, 300));
+  let result; try { result = JSON.parse(responseText); } catch(e) { result = {}; }
+  console.log('[CalAppt] success — id:', result?.id || result?.appointment?.id || '(no id in response)');
   return result;
 }
 
@@ -835,6 +889,7 @@ async function initApp() {
   startSyncLoop();
   startRefreshLoop();
   startCallbackChecker();
+  await discoverNoAnswerFieldId();
   await refreshLeads();
 }
 
@@ -879,13 +934,18 @@ function getFieldValue(c, fname) {
 function hasTag(c, tag) { return c.tags && c.tags.includes(tag); }
 function getNoAnswerCount(c) {
   const cfs = c.customFields || c.customField || [];
-  const f = cfs.find(f => f.key === 'no_answer_count');
-  return f ? (parseInt(f.value || f.field_value || '0') || 0) : 0;
-}
-function getNoAnswerFieldId(c) {
-  const cfs = c.customFields || c.customField || [];
-  const f = cfs.find(f => f.key === 'no_answer_count');
-  return f ? f.id : null;
+  // (1) by discovered field id
+  if (NA_FIELD_ID) {
+    const byId = cfs.find(f => f.id === NA_FIELD_ID);
+    if (byId) { const v = parseInt(byId.value || byId.field_value || '0'); if (v > 0) return v; }
+  }
+  // (2) by field key
+  const byKey = cfs.find(f => f.key === 'no_answer_count');
+  if (byKey) { const v = parseInt(byKey.value || byKey.field_value || '0'); if (v > 0) return v; }
+  // (3) tag fallback: no-answer-count-N
+  const naTag = (c.tags || []).find(t => /^no-answer-count-\d+$/.test(t));
+  if (naTag) return parseInt(naTag.split('-').pop()) || 0;
+  return 0;
 }
 function cleanName(raw) {
   if (!raw) return '';
@@ -1722,39 +1782,68 @@ function outcomeNoAnswer() {
 async function confirmNoAnswer(t, newCount) {
   const c = currentContact; closeModal(); showLoading('Logging...');
   try {
-    // STEP 1 — Increment no_answer_count in GHL
-    const fieldId = getNoAnswerFieldId(c);
-    const fieldPayload = fieldId
-      ? { id: fieldId, field_value: String(newCount) }
-      : { key: 'no_answer_count', field_value: String(newCount) };
+    console.log('[NA] Contact:', c.id, getContactName(c));
+    console.log('[NA] Count in cache (before):', getNoAnswerCount(c), '→ saving newCount:', newCount);
+    console.log('[NA] NA_FIELD_ID at call time:', NA_FIELD_ID);
 
-    console.log('[NoAnswer] Contact:', c.id, getContactName(c));
-    console.log('[NoAnswer] Count in cache (before):', getNoAnswerCount(c), '→ saving newCount:', newCount);
-    console.log('[NoAnswer] fieldId:', fieldId, '| payload:', JSON.stringify(fieldPayload));
+    // STEP 1 — Write field by discovered ID (primary path)
+    const fieldPayload = NA_FIELD_ID
+      ? { id: NA_FIELD_ID, value: String(newCount) }
+      : { key: 'no_answer_count', value: String(newCount) };
+    console.log('[NA] field payload:', JSON.stringify(fieldPayload));
 
     const updateResult = await ghlUpdateContact(c.id, { customFields: [fieldPayload] });
     const updatedContact = updateResult.contact || updateResult;
     const savedCFs = (updatedContact.customFields || updatedContact.customField || []);
-    const savedField = savedCFs.find(f => f.key === 'no_answer_count' || f.id === fieldId);
-    console.log('[NoAnswer] GHL PUT response — no_answer_count field:', JSON.stringify(savedField));
+    const savedField = NA_FIELD_ID
+      ? savedCFs.find(f => f.id === NA_FIELD_ID)
+      : savedCFs.find(f => f.key === 'no_answer_count');
+    console.log('[NA] PUT response field:', JSON.stringify(savedField));
 
+    // STEP 2 — Immediate GET verify
+    console.log('[NA] verifying via GET /contacts/' + c.id);
+    const verifyRes = await fetch(`${CFG.ghlBase}/contacts/${c.id}`, { headers: GHL_HEADERS() });
+    console.log('[NA] verify GET status:', verifyRes.status);
+    let verifiedCount = null;
+    if (verifyRes.ok) {
+      const verifyData = await verifyRes.json();
+      const verified = verifyData.contact || verifyData;
+      verifiedCount = getNoAnswerCount(verified);
+      console.log('[NA] verified count from GHL:', verifiedCount, '(expected:', newCount, ')');
+    } else {
+      console.warn('[NA] verify GET failed:', verifyRes.status);
+    }
+
+    // STEP 3 — Tag fallback if field write failed silently
+    const countMismatch = verifiedCount !== null && verifiedCount !== newCount;
+    if (countMismatch || verifiedCount === null) {
+      console.warn('[NA] field write mismatch — applying tag fallback. verified:', verifiedCount, 'expected:', newCount);
+      const oldNaTags = (c.tags || []).filter(tag => /^no-answer-count-\d+$/.test(tag));
+      for (const tag of oldNaTags) { try { await ghlRemoveTag(c.id, tag); console.log('[NA] removed old tag:', tag); } catch(e) {} }
+      await ghlAddTag(c.id, `no-answer-count-${newCount}`);
+      console.log('[NA] tag fallback applied: no-answer-count-' + newCount);
+    }
+
+    // STEP 4 — Remove old retry tags
     const oldRetryTags = (c.tags || []).filter(tag => tag.startsWith('no-answer-retry-'));
     for (const tag of oldRetryTags) { try { await ghlRemoveTag(c.id, tag); } catch(e) {} }
+
+    // STEP 5 — Sequence / toast
     if (newCount >= 6) {
       await ghlAddTag(c.id, 'free-trial-sequence');
       toast('Lead moved to Free Trial sequence', 'warning');
     } else {
       toast(`No answer #${newCount} logged to GHL`, 'success');
     }
-    // STEP 2 — Remove "no-answer" tag
+
+    // STEP 6 — Remove then re-add "no-answer" tag (2s delay)
     try { await ghlRemoveTag(c.id, 'no-answer'); } catch(e) {}
-    // STEP 3 — Wait 2s then re-add "no-answer" tag
     await new Promise(resolve => setTimeout(resolve, 2000));
     await ghlAddTag(c.id, 'no-answer');
     await ghlRefreshContact(c.id);
 
     const refreshed = allContacts.find(x => x.id === c.id);
-    console.log('[NoAnswer] Count read from GHL after refresh:', refreshed ? getNoAnswerCount(refreshed) : 'contact not in list');
+    console.log('[NA] final count after refresh:', refreshed ? getNoAnswerCount(refreshed) : 'contact not in list');
 
     logAction({action:'no_answer', leadId:c.id, leadName:getContactName(c), timeOnLead:t,
       suspicious:isSuspicious(t), reason:isSuspicious(t)?'outcome_clicked_under_30_seconds':null,
