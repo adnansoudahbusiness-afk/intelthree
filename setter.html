@@ -521,6 +521,7 @@ let filterSpecialty = '';
 let searchDebounce = null;
 let addContactDupBlocked = false;
 let NA_FIELD_ID = null;
+let NA_TAG_ONLY = false;
 const CAL_USER_CACHE = {};
 let googleToken = null;
 let googleTokenExp = 0;
@@ -717,7 +718,16 @@ async function discoverNoAnswerFieldId() {
   try {
     const res = await fetch(`${CFG.ghlBase}/locations/${CFG.ghlLoc}/customFields`, { headers: GHL_HEADERS() });
     console.log('[NA] GET /customFields status:', res.status);
-    if (!res.ok) { console.warn('[NA] customFields fetch failed:', res.status); return; }
+    if (!res.ok) {
+      if (res.status === 401) {
+        NA_TAG_ONLY = true;
+        console.warn('[NA] using tag-only mode — token lacks customFields scope');
+      } else {
+        console.warn('[NA] customFields fetch failed:', res.status);
+      }
+      console.log('[NA-INIT] field id:', NA_FIELD_ID, '| tag-only mode:', NA_TAG_ONLY);
+      return;
+    }
     const data = await res.json();
     const fields = data.customFields || data.fields || [];
     const f = fields.find(f =>
@@ -733,6 +743,8 @@ async function discoverNoAnswerFieldId() {
   } catch(e) {
     console.warn('[NA] discoverNoAnswerFieldId error:', e.message);
   }
+  console.log('[NA-INIT] field id:', NA_FIELD_ID, '| tag-only mode:', NA_TAG_ONLY);
+  if (!NA_FIELD_ID && !NA_TAG_ONLY) console.warn('[NA-INIT] WARNING: no field id discovered and not in tag-only mode — counts may not persist');
 }
 
 async function discoverCalendarUserId(calendarId) {
@@ -815,7 +827,20 @@ async function createCalendarAppointment(contactId, contactName, appointmentType
 
   if (!response.ok) {
     console.error('[CalAppt] FAILED — sent body:', JSON.stringify(body));
-    throw new Error(`GHL calendar (${response.status}): ${responseText.slice(0, 300)}`);
+    if (response.status === 401) {
+      const widgetUrl = `https://api.leadconnectorhq.com/widget/booking/${calId}?contactId=${contactId}`;
+      console.error('[CalAppt-401] calendar ID:', calId, '| endpoint: POST /calendars/events/appointments');
+      console.error('[CalAppt-401] full GHL response:', responseText);
+      console.error('[CalAppt-401] widget fallback URL:', widgetUrl);
+      toast('⚠️ تم حفظ الحجز في الـ CRM. التقويم يحتاج صلاحية — أضف صلاحيات calendars لتوكن GHL', 'warning');
+      window.open(widgetUrl, '_blank');
+      const err = new Error('401 — calendar scope missing (widget opened as fallback)');
+      err.handled = true;
+      throw err;
+    }
+    let ghlMsg = responseText.slice(0, 300);
+    try { const parsed = JSON.parse(responseText); ghlMsg = parsed.message || parsed.error || ghlMsg; } catch(_) {}
+    throw new Error(`❌ فشل الحجز (${response.status}): ${ghlMsg}`);
   }
 
   let result; try { result = JSON.parse(responseText); } catch(e) { result = {}; }
@@ -1547,7 +1572,7 @@ function renderDetailRight(c, stage) {
     <button class="outcome-btn primary" onclick="outcomeOnlineMeeting()">✅ حجز اجتماع أونلاين</button>
     <button class="outcome-btn primary" onclick="outcomeSiteVisit()">✅ حجز زيارة عيادة</button>
     <button class="outcome-btn" onclick="outcomeCallback()">📅 Callback Scheduled</button>
-    <div style="background:#fff8e0;border:1px solid #ffd98a;border-radius:8px;padding:5px 10px;font-size:11px;color:var(--amber-dark);text-align:center;direction:rtl;">محاولة رقم: <strong>${naCount + 1}</strong>${naCount > 0 ? ` (${naCount} سابقة)` : ''}</div>
+    <div id="na-count-badge" style="background:#fff8e0;border:1px solid #ffd98a;border-radius:8px;padding:5px 10px;font-size:11px;color:var(--amber-dark);text-align:center;direction:rtl;">محاولة رقم: <strong>${naCount + 1}</strong>${naCount > 0 ? ` (${naCount} سابقة)` : ''}</div>
     <button class="outcome-btn" onclick="outcomeNoAnswer()">🔄 No Answer ${naCount>0?`(${naCount}/6)`:''}</button>
     <button class="outcome-btn" onclick="outcomeSpokeNotReady()">💬 Spoke — Not Ready</button>
     <hr class="outcome-sep">
@@ -1624,7 +1649,7 @@ async function confirmDiscovery(t) {
     toast('✓ Appointment added to calendar','success');
   } catch(e) {
     console.warn('Calendar sync failed:', e.message);
-    toast('⚠ فشل حفظ الموعد: ' + e.message.slice(0, 120), 'warning');
+    if (!e.handled) toast('⚠ فشل حفظ الموعد: ' + e.message.slice(0, 120), 'warning');
   }
 }
 
@@ -1668,7 +1693,7 @@ async function confirmOnlineMeeting(t) {
     toast('✓ Online meeting added to calendar','success');
   } catch(e) {
     console.warn('Calendar sync failed:', e.message);
-    toast('⚠ فشل حفظ الموعد: ' + e.message.slice(0, 120), 'warning');
+    if (!e.handled) toast('⚠ فشل حفظ الموعد: ' + e.message.slice(0, 120), 'warning');
   }
 }
 
@@ -1710,7 +1735,7 @@ async function confirmSiteVisit(t) {
     toast('✓ Appointment added to calendar','success');
   } catch(e) {
     console.warn('Calendar sync failed:', e.message);
-    toast('⚠ فشل حفظ الموعد: ' + e.message.slice(0, 120), 'warning');
+    if (!e.handled) toast('⚠ فشل حفظ الموعد: ' + e.message.slice(0, 120), 'warning');
   }
 }
 
@@ -1756,7 +1781,7 @@ async function confirmCallback(t) {
     toast('✓ Appointment added to calendar','success');
   } catch(e) {
     console.warn('Calendar sync failed:', e.message);
-    toast('⚠ فشل حفظ الموعد: ' + e.message.slice(0, 120), 'warning');
+    if (!e.handled) toast('⚠ فشل حفظ الموعد: ' + e.message.slice(0, 120), 'warning');
   }
 }
 
@@ -1784,51 +1809,59 @@ async function confirmNoAnswer(t, newCount) {
   try {
     console.log('[NA] Contact:', c.id, getContactName(c));
     console.log('[NA] Count in cache (before):', getNoAnswerCount(c), '→ saving newCount:', newCount);
-    console.log('[NA] NA_FIELD_ID at call time:', NA_FIELD_ID);
+    console.log('[NA] NA_FIELD_ID at call time:', NA_FIELD_ID, '| NA_TAG_ONLY:', NA_TAG_ONLY);
 
-    // STEP 1 — Write field by discovered ID (primary path)
-    const fieldPayload = NA_FIELD_ID
-      ? { id: NA_FIELD_ID, value: String(newCount) }
-      : { key: 'no_answer_count', value: String(newCount) };
-    console.log('[NA] field payload:', JSON.stringify(fieldPayload));
-
-    const updateResult = await ghlUpdateContact(c.id, { customFields: [fieldPayload] });
-    const updatedContact = updateResult.contact || updateResult;
-    const savedCFs = (updatedContact.customFields || updatedContact.customField || []);
-    const savedField = NA_FIELD_ID
-      ? savedCFs.find(f => f.id === NA_FIELD_ID)
-      : savedCFs.find(f => f.key === 'no_answer_count');
-    console.log('[NA] PUT response field:', JSON.stringify(savedField));
-
-    // STEP 2 — Immediate GET verify
-    console.log('[NA] verifying via GET /contacts/' + c.id);
-    const verifyRes = await fetch(`${CFG.ghlBase}/contacts/${c.id}`, { headers: GHL_HEADERS() });
-    console.log('[NA] verify GET status:', verifyRes.status);
+    // STEP 1 — Write field (skip entirely in tag-only mode)
     let verifiedCount = null;
-    if (verifyRes.ok) {
-      const verifyData = await verifyRes.json();
-      const verified = verifyData.contact || verifyData;
-      verifiedCount = getNoAnswerCount(verified);
-      console.log('[NA] verified count from GHL:', verifiedCount, '(expected:', newCount, ')');
+    if (!NA_TAG_ONLY) {
+      const fieldPayload = NA_FIELD_ID
+        ? { id: NA_FIELD_ID, value: String(newCount) }
+        : { key: 'no_answer_count', value: String(newCount) };
+      console.log('[NA] field payload:', JSON.stringify(fieldPayload));
+      const updateResult = await ghlUpdateContact(c.id, { customFields: [fieldPayload] });
+      const updatedContact = updateResult.contact || updateResult;
+      const savedCFs = (updatedContact.customFields || updatedContact.customField || []);
+      const savedField = NA_FIELD_ID
+        ? savedCFs.find(f => f.id === NA_FIELD_ID)
+        : savedCFs.find(f => f.key === 'no_answer_count');
+      console.log('[NA] PUT response field:', JSON.stringify(savedField));
+
+      // STEP 2 — Immediate GET verify
+      console.log('[NA] verifying via GET /contacts/' + c.id);
+      const verifyRes = await fetch(`${CFG.ghlBase}/contacts/${c.id}`, { headers: GHL_HEADERS() });
+      console.log('[NA] verify GET status:', verifyRes.status);
+      if (verifyRes.ok) {
+        const verifyData = await verifyRes.json();
+        const verified = verifyData.contact || verifyData;
+        verifiedCount = getNoAnswerCount(verified);
+        console.log('[NA-VERIFY] expected:', newCount, 'got:', verifiedCount);
+      } else {
+        console.warn('[NA] verify GET failed:', verifyRes.status);
+      }
     } else {
-      console.warn('[NA] verify GET failed:', verifyRes.status);
+      console.log('[NA] skipping field write — tag-only mode');
     }
 
-    // STEP 3 — Tag fallback if field write failed silently
-    const countMismatch = verifiedCount !== null && verifiedCount !== newCount;
-    if (countMismatch || verifiedCount === null) {
-      console.warn('[NA] field write mismatch — applying tag fallback. verified:', verifiedCount, 'expected:', newCount);
+    // STEP 3 — Tag fallback if field write failed silently or in tag-only mode
+    const needTagFallback = NA_TAG_ONLY || verifiedCount === null || verifiedCount !== newCount;
+    if (needTagFallback) {
+      if (!NA_TAG_ONLY) console.warn('[NA] field write mismatch — applying tag fallback. verified:', verifiedCount, 'expected:', newCount);
       const oldNaTags = (c.tags || []).filter(tag => /^no-answer-count-\d+$/.test(tag));
-      for (const tag of oldNaTags) { try { await ghlRemoveTag(c.id, tag); console.log('[NA] removed old tag:', tag); } catch(e) {} }
+      for (const tag of oldNaTags) { try { await ghlRemoveTag(c.id, tag); console.log('[NA] removed old tag:', tag); } catch(err) {} }
       await ghlAddTag(c.id, `no-answer-count-${newCount}`);
       console.log('[NA] tag fallback applied: no-answer-count-' + newCount);
     }
 
-    // STEP 4 — Remove old retry tags
-    const oldRetryTags = (c.tags || []).filter(tag => tag.startsWith('no-answer-retry-'));
-    for (const tag of oldRetryTags) { try { await ghlRemoveTag(c.id, tag); } catch(e) {} }
+    // STEP 4 — Update badge immediately with verified count
+    const confirmedCount = needTagFallback ? newCount : verifiedCount;
+    const badge = document.getElementById('na-count-badge');
+    if (badge) badge.innerHTML = `محاولة رقم: <strong>${confirmedCount + 1}</strong> (تم التحقق ✓)`;
 
-    // STEP 5 — Sequence / toast
+    // STEP 5 — Remove old retry tags
+    const oldRetryTags = (c.tags || []).filter(tag => tag.startsWith('no-answer-retry-'));
+    for (const tag of oldRetryTags) { try { await ghlRemoveTag(c.id, tag); } catch(err) {} }
+
+    // STEP 6 — Sequence / toast
     if (newCount >= 6) {
       await ghlAddTag(c.id, 'free-trial-sequence');
       toast('Lead moved to Free Trial sequence', 'warning');
@@ -1836,8 +1869,8 @@ async function confirmNoAnswer(t, newCount) {
       toast(`No answer #${newCount} logged to GHL`, 'success');
     }
 
-    // STEP 6 — Remove then re-add "no-answer" tag (2s delay)
-    try { await ghlRemoveTag(c.id, 'no-answer'); } catch(e) {}
+    // STEP 7 — Remove then re-add "no-answer" tag (2s delay)
+    try { await ghlRemoveTag(c.id, 'no-answer'); } catch(err) {}
     await new Promise(resolve => setTimeout(resolve, 2000));
     await ghlAddTag(c.id, 'no-answer');
     await ghlRefreshContact(c.id);
